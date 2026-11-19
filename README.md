@@ -117,15 +117,25 @@ See [docs/results.md](docs/results.md). In short:
 ## Development
 
 ```bash
-git config core.hooksPath .githooks
+scripts/setup.sh                   # once per clone: pre-commit hook, browser, then the gate
 scripts/test.sh                    # gate tests, under 2 s, no browser, also the pre-commit hook
 scripts/eval.sh                    # browser eval on macOS
 scripts/eval.sh --channel msedge   # browser eval on Windows
+scripts/e2e.sh                     # build the wheel, install it, run it against pages served over HTTP
 ```
 
-Layout: `services/detect` (language from script counts), `services/fonts` (font tables and the
-per-platform prediction), `services/snapshot` (the browser), `services/check` (rules, report),
-`contracts/` (the shapes passed between them), `cjk_sense/` (the command). Related project:
+| path | what it is |
+|---|---|
+| `services/detect/` | language of the visible text, from script counts |
+| `services/fonts/` | font tables and the per-platform prediction |
+| `services/snapshot/` | the browser: computed `font-family`, effective `lang`, fonts really used |
+| `services/check/` | rules, report, exit code, text output |
+| `contracts/` | the shapes passed between them, and their validator |
+| `cjk_sense/` | the command; the only place that wires services together |
+| `evals/` | browser eval, end-to-end check, field-run summary |
+
+Working on this repository with a coding agent: start from [CLAUDE.md](CLAUDE.md), the current
+state is in [PROGRESS.md](PROGRESS.md). Related project:
 [l10n-sense](https://github.com/sabachan3/l10n-sense) checks whether translated strings mean the
 right thing.
 

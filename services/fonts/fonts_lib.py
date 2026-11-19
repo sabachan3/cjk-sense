@@ -7,7 +7,7 @@ that has the character; only when the list runs out (or reaches a generic family
 page Chinese letterforms even with lang="ja".
 
 The rules below were checked against real browsers with Japanese as the display language:
-Chromium on macOS and Edge on Windows 11 (services/snapshot/eval_fixtures.py). iOS and Android
+Chromium on macOS and Edge on Windows 11 (evals/eval_fixtures.py). iOS and Android
 follow the same rules with their own font lists and have not been checked on a device.
 """
 

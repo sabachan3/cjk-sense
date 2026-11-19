@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "features": [
+    {
+      "id": "font-region-prediction",
+      "behavior": "From font-family, lang and loaded web fonts, predict per platform (mac, windows, ios, android) which region's font draws Han text.",
+      "verify": "uv run --quiet --no-project --with pytest pytest -q services/fonts/tests",
+      "state": "passing"
+    },
+    {
+      "id": "language-detection",
+      "behavior": "Tell Japanese, Chinese and Korean text apart by script counts, and other languages down to their script.",
+      "verify": "uv run --quiet --no-project --with pytest pytest -q services/detect/tests",
+      "state": "passing"
+    },
+    {
+      "id": "rules-and-report",
+      "behavior": "Turn an analysed page into han-font, lang-mismatch, lang-missing, wrong-language and page-error findings, a verdict, report version 1 and an exit code.",
+      "verify": "uv run --quiet --no-project --with pytest pytest -q services/check/tests",
+      "state": "passing"
+    },
+    {
+      "id": "command-line",
+      "behavior": "cjk-sense check accepts URLs, --urls-file, --expect, --platforms, --fail-on, --format and --out, and exits 0, 1 or 2.",
+      "verify": "uv run --quiet --no-project --with pytest pytest -q tests services/snapshot/tests",
+      "state": "passing"
+    },
+    {
+      "id": "browser-eval-macos",
+      "behavior": "In Chromium on macOS the 22 known-answer pages give exactly the expected rules and every font prediction matches the font the browser used.",
+      "verify": "scripts/eval.sh",
+      "state": "passing"
+    },
+    {
+      "id": "browser-eval-windows",
+      "behavior": "In Edge on Windows 11 the 22 known-answer pages give exactly the expected rules and every font prediction matches the font the browser used.",
+      "verify": "scripts/eval.sh --channel msedge",
+      "state": "blocked",
+      "note": "Must run on Windows; it cannot be verified from macOS or Linux. Last recorded result: 22/22 on 2026-11-19 (docs/results.md). Rerun on Windows after any change to fonts_lib.py or snapshot_lib.py."
+    },
+    {
+      "id": "installed-package",
+      "behavior": "The built wheel, installed into a clean environment, checks pages served over HTTP in a real browser and returns the right verdicts and exit codes.",
+      "verify": "scripts/e2e.sh",
+      "state": "passing"
+    }
+  ]
+}
