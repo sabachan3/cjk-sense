@@ -1,0 +1,36 @@
+# Example workflow: copy to .github/workflows/cjk-sense.yml in your project.
+#
+# The font check is a prediction from CSS, so it gives the same answer on this Linux runner
+# as on your users' Macs and Windows PCs. No account, no model, no cost beyond runner minutes.
+name: cjk-sense
+on:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build and start the site
+        run: |
+          npm ci
+          npm run build
+          npm run start &
+          npx --yes wait-on http://localhost:3000
+      - name: Install the browser
+        run: uvx --from playwright playwright install --with-deps chromium-headless-shell
+      - name: Check the localised pages
+        run: |
+          uvx --from git+https://github.com/sabachan3/cjk-sense cjk-sense check \
+            http://localhost:3000/ja --expect ja --out cjk-sense-ja.json
+          uvx --from git+https://github.com/sabachan3/cjk-sense cjk-sense check \
+            http://localhost:3000/zh --expect zh --out cjk-sense-zh.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cjk-sense-report
+          path: cjk-sense-*.json

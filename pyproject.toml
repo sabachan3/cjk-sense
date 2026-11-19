@@ -1,0 +1,32 @@
+[project]
+name = "cjk-sense"
+version = "0.1.0"
+description = "Find pages whose kanji are drawn with another region's font, and pages whose lang attribute does not match their text"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = ["playwright>=1.49"]
+keywords = ["i18n", "l10n", "cjk", "japanese", "chinese", "fonts", "lang", "lint", "accessibility"]
+classifiers = ["Programming Language :: Python :: 3", "Topic :: Software Development :: Internationalization",
+               "Topic :: Software Development :: Quality Assurance"]
+
+[project.scripts]
+cjk-sense = "cjk_sense.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cjk_sense"]
+
+# The runtime services ship inside the package; evals and the field scan stay in the repository.
+[tool.hatch.build.targets.wheel.force-include]
+"services/detect/detect_lib.py" = "cjk_sense/_services/detect/detect_lib.py"
+"services/fonts/fonts_lib.py" = "cjk_sense/_services/fonts/fonts_lib.py"
+"services/snapshot/snapshot_lib.py" = "cjk_sense/_services/snapshot/snapshot_lib.py"
+"services/check/check_lib.py" = "cjk_sense/_services/check/check_lib.py"
+"contracts/schema.py" = "cjk_sense/_services/contracts/schema.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["cjk_sense", "services", "contracts", "README.md", "LICENSE", "pyproject.toml"]
