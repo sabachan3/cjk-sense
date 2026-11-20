@@ -1,0 +1,26 @@
+
+Microsoft Windows [Version 10.0.26200.9974]
+ok   ja, generic font: no findings
+ok   ja, Japanese fonts listed: no findings
+ok   ja, system-ui then Japanese fonts: no findings
+ok   ja, lang left as en: ['lang-mismatch']
+ok   ja, no lang: ['lang-missing']
+ok   ja, lang says zh: ['han-font', 'lang-mismatch']
+ok   ja, lang says ko: ['han-font', 'lang-mismatch']
+ok   ja, old Ant Design list: ['han-font']
+ok   ja, Chinese fonts first: ['han-font']
+ok   ja, Chinese font after Latin fonts: ['han-font']
+ok   ja, generic before Chinese fonts: no findings
+ok   ja, one component with Chinese fonts: ['han-font']
+ok   ja, quoted Chinese marked with lang: no findings
+ok   ja, hidden Chinese-font text is ignored: no findings
+ok   zh, generic font: no findings
+ok   zh, Chinese fonts listed: no findings
+ok   zh, Japanese fonts first: ['han-font']
+ok   zh, lang left as ja: ['han-font', 'lang-mismatch']
+ok   ko, generic font: no findings
+ok   en, generic font: no findings
+ok   en, lang says ja: ['lang-mismatch']
+ok   en with a Japanese product name: no findings
+command line: 22/22 pages match, exit code 1 (expected 1)
+windows: 22/22 fixtures pass, 21 font predictions compared with the browser

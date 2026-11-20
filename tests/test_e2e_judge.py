@@ -83,10 +83,16 @@ def test_all_pages_run_with_a_summary_of_the_wrong_type_fails_without_raising():
 
 
 def test_output_that_is_not_utf8_is_read_without_raising(tmp_path):
-    script = tmp_path / "fake"
-    script.write_text(f"#!{sys.executable}\nimport sys\nsys.stdout.buffer.write(bytes([0xff, 0xfe, 0x80]))\n"
-                      "sys.stderr.buffer.write(bytes([0xff]) + b'bad bytes')\nsys.exit(3)\n", encoding="utf-8")
-    script.chmod(0o755)
+    body = tmp_path / "fake.py"
+    body.write_text("import sys\nsys.stdout.buffer.write(bytes([0xff, 0xfe, 0x80]))\n"
+                    "sys.stderr.buffer.write(bytes([0xff]) + b'bad bytes')\nsys.exit(3)\n", encoding="utf-8")
+    if sys.platform == "win32":  # no shebang there: a batch file that runs the same script
+        script = tmp_path / "fake.cmd"
+        script.write_text(f'@"{sys.executable}" "{body}" %*\r\n', encoding="utf-8")
+    else:
+        script = tmp_path / "fake"
+        script.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{body}" "$@"\n', encoding="utf-8")
+        script.chmod(0o755)
     code, stdout, stderr = e2e.invoke(str(script), ["http://x/"], None)
     assert code == 3
     good, line = e2e.judge_page("p.html", code, stdout, stderr, "ok", set(), 0)

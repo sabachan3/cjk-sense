@@ -20,10 +20,22 @@ A compared prediction is one where the browser reported the font it used. Predic
 `system` (the page leaves the choice to the reader's display language) are counted among the
 21 but accept any font, so "all matching" is a statement about the predictions that name a region.
 
-Both rows are from 2026-11-19. Rerun on 2026-11-20 on macOS after the JSON output change:
-22/22 fixtures, 21 predictions compared, same result. The Windows row was not rerun; its only
-record is this table, no output file was kept. Changes since then did not touch the font
-tables, the snapshot or the rules.
+Both rows were first measured on 2026-11-19 and rerun on 2026-11-20 after the output changes
+(JSON escaping, text cleaning, exit codes), with the same result on both. The Windows rerun
+(Windows 11 build 26200, installed Edge, Python 3.10, display language Japanese, code page 932)
+is kept in [records/windows-eval-2026-11-20.txt](records/windows-eval-2026-11-20.txt). The
+2026-11-19 Windows run left no output file.
+
+### Windows, real machine (2026-11-20)
+
+- Gate tests: 87 passed on Windows with Python 3.10. Before this date one test could not run
+  there (it used a shebang script); it now uses a batch file on Windows.
+- Redirected and piped output. One local page whose first characters are a kanji outside the
+  code page (U+20BB7) and a joined emoji, checked with `> file` and through a pipe, in both
+  formats. The previous version wrote nothing and ended in `UnicodeEncodeError: 'cp932' codec
+  can't encode character` with exit 1. This version writes the report and exits 1 for the
+  `han-font` finding; the JSON, read back as code page 932, parses and holds the same characters
+  as escapes. One page, one machine.
 
 ## End-to-end check of the installed package (2026-11-20)
 

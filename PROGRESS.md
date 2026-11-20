@@ -6,9 +6,9 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
 
 - Version 0.1.0, public, installable from the repository URL. Not on PyPI.
 - Five rules: `han-font`, `lang-mismatch`, `lang-missing`, `wrong-language`, `page-error`.
-- Gate: 74 tests, under 1 s, runs as the pre-commit hook.
-- Browser eval: 22/22 on macOS (Chromium) rerun 2026-11-20; 22/22 on Windows 11 (Edge) recorded
-  2026-11-19.
+- Gate: 87 tests, under 1 s (also passes on Windows, checked by hand 2026-11-20), runs as the pre-commit hook.
+- Browser eval: 22/22 on macOS (Chromium) rerun 2026-11-20; 22/22 on Windows 11 (Edge) rerun
+  2026-11-20.
 - End-to-end check of the installed wheel: 4/4 on macOS, 2026-11-20.
 - Field run (2026-11-19): 265 Japanese pages of open-source projects, 6.8% fail `han-font`,
   11.3% `lang-mismatch`. Details in [docs/results.md](docs/results.md).
@@ -42,6 +42,10 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
   differ between Python versions. Files: `cjk_sense/cli.py`, `services/check/check_lib.py`,
   `tests/test_cli.py`, `README.md`, `CLAUDE.md`, `DECISIONS.md`, `docs/results.md`,
   `evals/field_summary.py`, this file.
+- 2026-11-20: checked on a real Windows 11 machine. Browser eval in Edge 22/22 on the current
+  code (output kept in `docs/records/`), gate 87 passed, redirected and piped output of a page
+  with characters outside code page 932 works where the previous version crashed. One test made
+  portable (`tests/test_e2e_judge.py`), two test file writes given an explicit encoding.
 
 ## In Progress
 
@@ -49,8 +53,6 @@ Nothing.
 
 ## Known Issues
 
-- Output to a standard output that is not UTF-8 (redirected output on Windows) is covered by
-  gate tests with a simulated stream only. Not run on a real Windows machine.
 - Text output drops the zero-width joiner, so a joined emoji in a sample prints as its parts.
 - The hostile-page browser run in `docs/results.md` was by hand; no script reproduces it.
 - A page answered with HTTP 404 or 500 is checked like any other page.
@@ -64,11 +66,8 @@ Nothing.
 - Only the state of the page after load is checked, not text behind menus, tabs or dialogs.
 - A page under `lang="ko"` with Japanese text can be predicted but not confirmed, because the
   probe may hold only characters the Korean font lacks (one case in the field run).
-- The Windows browser eval cannot be rerun from macOS; `features.json` marks it `blocked`.
-  Not rerun on Windows since 2026-11-19. Changes since then: a docstring in `fonts_lib.py`,
-  a named constant in `detect_lib.py` (same value), JSON output escaping in `cli.py`, and
-  `check_lib.clean()` now dropping every non-printable character from text output. None
-  changes a prediction or a rule, but that is argued, not shown by a Windows run.
+- The Windows browser eval cannot be started from macOS; `features.json` keeps it `blocked`. It was
+  rerun by hand on 2026-11-20 (22/22) and has to be rerun by hand after behaviour changes.
 - Until 2026-11-20 a page holding a lone surrogate crashed the command with exit 1, the same
   code as a failing page. Fixed and gate-tested; reports made before that date are unaffected.
 - There is no CI in this repository itself: the gate runs only through the local hook.

@@ -81,12 +81,12 @@ def test_page_error_fails_and_other_pages_are_still_checked(capsys):
 
 def test_urls_file_out_file_and_no_urls(capsys, tmp_path):
     listing = tmp_path / "urls.txt"
-    listing.write_text("# pages\nhttp://a/ja\n\nhttp://b/ja\nhttp://a/ja\n")
+    listing.write_text("# pages\nhttp://a/ja\n\nhttp://b/ja\nhttp://a/ja\n", encoding="utf-8")
     out_file = tmp_path / "report.json"
     code, _, seen = run(capsys, [snapshot("http://a/ja"), snapshot("http://b/ja")], "--urls-file", str(listing),
                         "--out", str(out_file))
     assert code == 0 and seen["urls"] == ["http://a/ja", "http://b/ja"]
-    assert json.loads(out_file.read_text())["summary"]["pages"] == 2
+    assert json.loads(out_file.read_text(encoding="utf-8"))["summary"]["pages"] == 2
     assert cli.main(["check"], snapshots=lambda urls, args: []) == 2
 
 
