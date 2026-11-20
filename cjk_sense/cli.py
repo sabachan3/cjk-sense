@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -63,6 +64,19 @@ def analyse(snapshot: dict, expect: str | None, platforms: tuple[str, ...]) -> d
             "predicted": {platform: list(fonts_lib.resolve(group["stack"], region, platform, webfonts))
                           for platform in platforms}})
     return page
+
+
+# json.dumps escapes the C0 controls itself. With ensure_ascii off it leaves DEL, the C1 controls
+# (0x9b starts an escape sequence on some terminals), the line separators and the direction
+# overrides as they are, and all of them can come from a page.
+_JSON_UNSAFE = re.compile("[" + "".join(f"{chr(first)}-{chr(last)}" for first, last in (
+    (0x7F, 0x9F), (0x2028, 0x2029), (0x202A, 0x202E), (0x2066, 0x2069))) + "]")
+
+
+def json_text(report: dict) -> str:
+    """The report as JSON that is safe to print: same data, risky characters written as escapes."""
+    text = json.dumps(report, ensure_ascii=False, indent=2)
+    return _JSON_UNSAFE.sub(lambda match: f"\\u{ord(match.group()):04x}", text)
 
 
 def run(snapshots: list[dict], expect: str | None, platforms: tuple[str, ...]) -> dict:
@@ -130,8 +144,8 @@ def main(argv: list[str] | None = None, snapshots=take_snapshots) -> int:
         return 2
     report = run(taken, args.expect, platforms)
     if args.out:
-        Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(report, ensure_ascii=False, indent=2) if args.format == "json" else check_lib.format_text(report))
+        Path(args.out).write_text(json_text(report) + "\n", encoding="utf-8")
+    print(json_text(report) if args.format == "json" else check_lib.format_text(report))
     return check_lib.exit_code(report, args.fail_on)
 
 

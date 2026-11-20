@@ -1,5 +1,5 @@
-# agent-sense: local checks for work done with coding agents (optional tool; nothing here is
-# needed to use or develop cjk-sense).
+# Settings for agent-sense, the author's own unpublished tool for checking agent work.
+# Optional: nothing in this file is needed to use or develop cjk-sense, and it can be ignored.
 [done]
 test = "scripts/test.sh"
 ignore = ["features.json"]   # verification writes states here; that does not make the test run stale

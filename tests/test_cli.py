@@ -104,3 +104,39 @@ def test_malformed_snapshot_is_rejected():
 
     with pytest.raises(ValueError):
         cli.run([{"url": "u", "text": "x"}], None, ("mac",))
+
+
+ESC, DEL, CSI, RLO, LS, LRI = chr(0x1B), chr(0x7F), chr(0x9B), chr(0x202E), chr(0x2028), chr(0x2066)
+
+
+def test_json_text_escapes_control_and_direction_characters_and_keeps_the_data():
+    hostile = f"evil{DEL}{CSI}31m{RLO}{ESC}[2J{LS}{LRI} " + JA[:8]
+    report = {"pages": [{"url": hostile, "findings": [{"sample": hostile}]}]}
+    text = cli.json_text(report)
+    assert not any(char in text for char in (ESC, DEL, CSI, RLO, LS, LRI))
+    assert json.loads(text) == report      # valid JSON, nothing dropped or changed
+    assert JA[:8] in text                  # ordinary CJK text stays readable
+
+
+def test_json_format_and_out_file_go_through_json_text(capsys, tmp_path):
+    hostile = f"p{CSI}31m{RLO}{DEL}"
+    out = tmp_path / "report.json"
+    code, printed, _ = run(capsys, [snapshot(url=f"http://localhost/{hostile}")], "http://localhost/x",
+                           "--format", "json", "--out", str(out))
+    written = out.read_text(encoding="utf-8")
+    for text in (printed.out, written):
+        assert not any(char in text for char in (CSI, RLO, DEL))
+        assert json.loads(text)["pages"][0]["url"].endswith(hostile)
+
+
+def test_text_format_strips_the_same_characters(capsys):
+    hostile = f"p{CSI}31m{RLO}{DEL}{ESC}[2J"
+    _, printed, _ = run(capsys, [snapshot(url=f"http://localhost/{hostile}")], "http://localhost/x")
+    assert not any(char in printed.out for char in (CSI, RLO, DEL, ESC))
+
+
+def test_report_version_is_the_same_in_the_contract_and_the_check_service():
+    import check_lib
+    from contracts import schema
+
+    assert check_lib.REPORT_VERSION == schema.REPORT_VERSION == 1

@@ -26,6 +26,7 @@ MIN_LETTERS = 50        # fewer letters than this and nothing is concluded
 MIN_CJK = 20            # kana, Han or Hangul characters needed to call a page CJK
 MIN_CJK_SHARE = 0.1     # of all letters; below this the CJK text is a quotation on another page
 MIN_KANA_SHARE = 0.2    # kana among kana + Han; a Chinese page quoting Japanese falls below
+MIN_SCRIPT_SHARE = 0.5  # of all letters; a non-CJK script below this is too mixed to name
 
 CJK = ("ja", "zh", "ko")
 NAMES = {"ja": "Japanese", "zh": "Chinese", "ko": "Korean", "latin": "Latin script", "cyrillic": "Cyrillic script",
@@ -69,7 +70,7 @@ def detect(counts: dict[str, int]) -> str | None:
         return "ko" if hangul >= kana else "ja"
     others = {name: count for name, count in counts.items() if name not in ("kana", "han", "hangul")}
     name, count = max(others.items(), key=lambda item: item[1])
-    return name if count / letters >= 0.5 else None
+    return name if count / letters >= MIN_SCRIPT_SHARE else None
 
 
 def primary(lang: str | None) -> str:

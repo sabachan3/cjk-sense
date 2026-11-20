@@ -1,6 +1,6 @@
 # Results
 
-Date: 2026-11-19. Version 0.1.0.
+Dates: 2026-11-19, with reruns on 2026-11-20 marked as such. Version 0.1.0.
 
 ## Browser eval: 22 pages with a known answer
 
@@ -15,6 +15,23 @@ and the command line gives the same result on `file://` copies.
 | Edge on Windows 11 (Japanese display language) | 22/22 | 21, all matching |
 
 The pass threshold is 100%: every case is deterministic. iOS and Android have not been run.
+
+A compared prediction is one where the browser reported the font it used. Predictions of
+`system` (the page leaves the choice to the reader's display language) are counted among the
+21 but accept any font, so "all matching" is a statement about the predictions that name a region.
+
+Both rows are from 2026-11-19. Rerun on 2026-11-20 on macOS after the JSON output change:
+22/22 fixtures, 21 predictions compared, same result. The Windows row was not rerun; its only
+record is this table, no output file was kept. Changes since then did not touch the font
+tables, the snapshot or the rules.
+
+## End-to-end check of the installed package (2026-11-20)
+
+`scripts/e2e.sh` builds the wheel, installs it into a throwaway environment and runs the
+installed command against three pages served over HTTP (macOS, Chromium): 4/4 checks pass
+(a clean page: ok, exit 0; a Chinese font ahead of Japanese fonts: `han-font`, exit 1; a wrong
+`lang`: `lang-mismatch`, exit 1; all three in one run: 2 fail, 1 ok, exit 1). Negative control:
+with one service removed from the wheel's file list, all four checks fail and the script exits 1.
 
 ## Field run: Japanese pages of open-source projects
 

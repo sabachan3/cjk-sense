@@ -6,7 +6,7 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
 
 - Version 0.1.0, public, installable from the repository URL. Not on PyPI.
 - Five rules: `han-font`, `lang-mismatch`, `lang-missing`, `wrong-language`, `page-error`.
-- Gate: 48 tests, about 1 s, runs as the pre-commit hook.
+- Gate: 59 tests, under 1 s, runs as the pre-commit hook.
 - Browser eval: 22/22 on macOS (Chromium) rerun 2026-11-20; 22/22 on Windows 11 (Edge) recorded
   2026-11-19.
 - End-to-end check of the installed wheel: 4/4 on macOS, 2026-11-20.
@@ -19,7 +19,13 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
   field run, results document, GitHub Actions example.
 - 2026-11-20: agent harness: `CLAUDE.md`, this file, `DECISIONS.md`, `features.json`,
   `scripts/setup.sh`, `scripts/e2e.sh` with `evals/e2e.py`, optional Stop hook, evaluator
-  subagent definition.
+  subagent definition. Same change: README layout and development sections rewritten, and a
+  stale path in the `fonts_lib.py` docstring corrected.
+- 2026-11-20: corrections after an independent review of that change. JSON output now writes
+  control and direction characters from a page as escapes (`cli.json_text`); the end-to-end
+  check reports a crashed command as a failed check instead of a traceback, with gate tests;
+  `MIN_SCRIPT_SHARE` named in `detect_lib.py`; a gate test keeps the two `REPORT_VERSION`
+  constants equal; statements in `CLAUDE.md`, `DECISIONS.md` and `features.json` corrected.
 
 ## In Progress
 
@@ -37,6 +43,9 @@ Nothing.
 - A page under `lang="ko"` with Japanese text can be predicted but not confirmed, because the
   probe may hold only characters the Korean font lacks (one case in the field run).
 - The Windows browser eval cannot be rerun from macOS; `features.json` marks it `blocked`.
+  Not rerun on Windows since 2026-11-19. Changes since then: a docstring in `fonts_lib.py`,
+  a named constant in `detect_lib.py` (same value), JSON output escaping in `cli.py`. None
+  changes a prediction or a rule, but that is argued, not shown by a Windows run.
 - There is no CI in this repository itself: the gate runs only through the local hook.
 - No lock file: `uv run --with` resolves `playwright>=1.49` and `pytest` at run time, so a
   breaking upstream release would show up as a gate or eval failure, not be prevented.

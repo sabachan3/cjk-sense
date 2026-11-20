@@ -2,11 +2,15 @@
 
 Newest first. Each entry: what was decided, why, and what was rejected.
 
+Entries dated before 2026-11-20 were written down on 2026-11-20. Where a reason is not backed
+by a measurement in `docs/results.md`, it is the author's reasoning, not a measured fact.
+
 ## 2026-11-20: The agent Stop hook is optional and does nothing without the tool
 
 - Decision: `.claude/settings.json` runs `agent-sense hook stop` only when `agent-sense` is on
   the PATH, and otherwise succeeds silently.
-- Why: the repository is public; contributors without the tool must not see errors.
+- Why: the repository is public and `agent-sense` is the author's own unpublished tool, so
+  nobody else has it. Nothing in this repository needs it; without it the hook is a no-op.
 - Rejected: keeping the hook in an untracked local settings file (each clone would have to
   set it up again and the check would be forgotten).
 
@@ -42,22 +46,23 @@ Newest first. Each entry: what was decided, why, and what was rejected.
 ## 2026-11-19: Simplified and Traditional Chinese are one region
 
 - Decision: the regions are `ja`, `zh`, `ko`.
-- Why: the defect targeted is cross-language letterforms; telling the Chinese variants apart
-  by text alone is unreliable.
+- Why: the defect targeted is cross-language letterforms. Reasoning, not measured: many
+  characters are shared by both Chinese variants, so short text does not say which one it is.
 - Rejected: `zh-Hans` and `zh-Hant` as separate regions.
 
 ## 2026-11-19: `han-font` fails at 20% of the page's Han text and warns from 2%
 
 - Decision: `FAIL_SHARE = 0.2`, `WARN_SHARE = 0.02`, `WARN_CHARS = 10` in `check_lib.py`.
 - Why: one component with a foreign font list should be reported without failing a page
-  that is otherwise right; a few characters are usually a product name or a quotation.
+  that is otherwise right. The lower bound rests on an assumption, not a measurement: a few
+  characters in another region's font are expected to be a name or a quotation.
 - Rejected: failing on any Han text in another region's font.
 
 ## 2026-11-19: An unrecognised web font is assumed to have no Han characters
 
 - Decision: `resolve()` skips a loaded web font whose name matches no region.
-- Why: most web fonts are Latin; assuming Han coverage would hide the fallback that really
-  draws the text.
+- Why: assuming Han coverage would hide the fallback that really draws the text. That an
+  unrecognised web font is more often Latin-only than CJK is an assumption; it was not counted.
 - Rejected: treating unknown fonts as covering Han. Cost: a self-hosted CJK font with an
   unusual name is missed unless the browser confirmation sees it.
 
