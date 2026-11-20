@@ -5,6 +5,20 @@ Newest first. Each entry: what was decided, why, and what was rejected.
 Entries dated before 2026-11-20 were written down on 2026-11-20. Where a reason is not backed
 by a measurement in `docs/results.md`, it is the author's reasoning, not a measured fact.
 
+## 2026-11-20: Text output removes invisible characters, JSON escapes them
+
+- Decision: decided by Unicode category. `check_lib.clean()` keeps only printable characters
+  in text output and error messages. `cli.json_text()` writes every character of category Cc,
+  Cf, Zl, Zp, Cs or Co as a `\uXXXX` escape, on stdout and in the `--out` file.
+- Why: page text is untrusted and reaches terminals and CI logs. Text is for reading, so
+  dropping is fine. JSON is data, so nothing may be lost: an escape keeps the value and shows
+  the reader that the character is there. A first version listed ranges and missed direction
+  marks, zero-width characters and lone surrogates; a lone surrogate crashed the command.
+- Rejected: `ensure_ascii=True` (every kanji and kana in the report becomes an escape, which
+  makes samples unreadable in a tool about CJK text); a list of dangerous ranges (it was
+  incomplete once already); removing characters from JSON (the report would no longer say what
+  the page holds).
+
 ## 2026-11-20: The agent Stop hook is optional and does nothing without the tool
 
 - Decision: `.claude/settings.json` runs `agent-sense hook stop` only when `agent-sense` is on

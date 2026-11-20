@@ -140,3 +140,69 @@ def test_report_version_is_the_same_in_the_contract_and_the_check_service():
     from contracts import schema
 
     assert check_lib.REPORT_VERSION == schema.REPORT_VERSION == 1
+
+
+# One character of every kind that must never reach a terminal raw. Built from integers, never typed.
+INVISIBLE = [chr(code) for code in (0x1B, 0x07, 0x7F, 0x9B, 0x2028, 0x2029, 0x202E, 0x2066, 0x200E, 0x200F, 0x061C,
+                                    0x200B, 0x200D, 0x2060, 0xFEFF, 0x00AD, 0xFFF9, 0xE000, 0xE0001, 0xE0041, 0xD800)]
+SURROGATE = chr(0xD800)
+
+
+def hostile_snapshot():
+    junk = "".join(INVISIBLE)
+    stack = f'"PingFang SC", "Web{junk}Font", sans-serif'
+    return snapshot(url="http://localhost/ja" + junk[:3], stack=stack, html_lang="ja" + SURROGATE,
+                    text=JA + junk) | {"groups": [{"stack": stack, "lang": "ja", "chars": 60,
+                                                   "sample": "設定" + junk, "where": "p#x" + junk, "fonts": []}]}
+
+
+def test_json_text_escapes_every_invisible_category_and_keeps_the_data():
+    data = {"sample": "設定" + "".join(INVISIBLE) + " ok", "".join(INVISIBLE): 1}
+    text = cli.json_text(data)
+    assert not any(char in text for char in INVISIBLE)
+    assert json.loads(text) == data            # nothing lost, the lone surrogate included
+    text.encode("utf-8")                       # a raw lone surrogate would raise here
+    assert "設定" in text                       # ordinary CJK text stays readable
+
+
+def test_json_text_writes_astral_format_characters_as_a_surrogate_pair():
+    tag = chr(0xE0041)
+    text = cli.json_text({"k": tag})
+    assert "\\udb40\\udc41" in text and json.loads(text) == {"k": tag}
+
+
+def test_page_with_lone_surrogate_and_direction_marks_gives_a_normal_report(capsys, tmp_path):
+    out_file = tmp_path / "report.json"
+    for fmt in ("text", "json"):
+        code, out, _ = run(capsys, [hostile_snapshot()], "http://localhost/ja", "--format", fmt, "--out", str(out_file))
+        assert code == 1                                         # the Chinese font list still fails the page
+        out.out.encode("utf-8")                                  # printable: no lone surrogate
+        written = out_file.read_text(encoding="utf-8")
+        for stream in (out.out, out.err, written):
+            assert not any(char in stream for char in INVISIBLE), fmt
+        assert json.loads(written)["pages"][0]["findings"][0]["rule"] == "han-font"
+    assert "han-font" in out.out and json.loads(out.out)["summary"]["fail"] == 1
+
+
+def test_clean_keeps_spaces_and_text_and_drops_everything_invisible():
+    from cjk_sense.cli import check_lib
+    text = "設定 を" + chr(0x3000) + "保存" + "".join(INVISIBLE) + "\n\tend"
+    assert check_lib.clean(text) == "設定 を 保存  end"
+
+
+def test_browser_error_text_is_cleaned(capsys):
+    def boom(urls, args):
+        raise RuntimeError("cannot launch" + "".join(INVISIBLE) + "\nsecond line")
+
+    code = cli.main(["check", "u"], snapshots=boom)
+    err = capsys.readouterr().err
+    assert code == 2 and "cannot launch" in err and "second line" not in err
+    assert not any(char in err for char in INVISIBLE)
+
+
+def test_browser_error_without_text_still_exits_two(capsys):
+    def boom(urls, args):
+        raise RuntimeError("")
+
+    assert cli.main(["check", "u"], snapshots=boom) == 2
+    assert "could not start the browser" in capsys.readouterr().err

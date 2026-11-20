@@ -6,7 +6,7 @@ language and, for every group of Han text, the predicted font region per platfor
 
 from __future__ import annotations
 
-import re
+import unicodedata
 
 CJK = ("ja", "zh", "ko")
 LANGUAGE = {"ja": "Japanese", "zh": "Chinese", "ko": "Korean"}
@@ -21,12 +21,20 @@ MIN_HAN = 10        # pages with fewer Han characters are not checked for fonts
 MAX_FONT_FINDINGS = 5
 ORDER = {"fail": 2, "warn": 1, "ok": 0}
 REPORT_VERSION = 1
-_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\u2028\u2029\u202a-\u202e\u2066-\u2069]")
+
+
+def _visible(char: str) -> str:
+    """A character as it may be shown: itself when printable, a space for any kind of white space,
+    nothing for the rest (controls, direction marks and overrides, zero-width characters, tags,
+    lone surrogates, private use, unassigned)."""
+    if char.isprintable():
+        return char
+    return " " if char in "\n\t" or unicodedata.category(char) == "Zs" else ""
 
 
 def clean(text: object, limit: int = 300) -> str:
-    """Page-controlled text made safe for a terminal: control and direction characters removed."""
-    return _CONTROL.sub("", str(text).replace("\n", " ").replace("\t", " "))[:limit]
+    """Page-controlled text made safe for a terminal: only printable characters and plain spaces remain."""
+    return "".join(_visible(char) for char in str(text))[:limit]
 
 
 def name(detected: str | None) -> str:

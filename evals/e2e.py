@@ -43,14 +43,15 @@ def serve(site: Path) -> http.server.ThreadingHTTPServer:
             pass
 
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=str(site)))
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    # a short poll keeps shutdown() quick; the default waits up to half a second
+    threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
     return server
 
 
 def invoke(command: str, urls: list[str], channel: str | None) -> tuple[int, str, str]:
     argv = [command, "check", *urls, "--format", "json"] + (["--channel", channel] if channel else [])
     try:
-        done = subprocess.run(argv, capture_output=True, text=True, timeout=180)
+        done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace", timeout=180)
     except (OSError, subprocess.TimeoutExpired) as error:
         return -1, "", f"{type(error).__name__}: {error}"
     return done.returncode, done.stdout, done.stderr
@@ -71,14 +72,21 @@ def read_report(code: int, stdout: str, stderr: str) -> tuple[dict | None, str]:
 
 def judge_page(name: str, code: int, stdout: str, stderr: str,
                verdict: str, rules: set[str], exit_code: int) -> tuple[bool, str]:
-    """Whether one single-page run matches, and the line to print for it. Never raises."""
+    """Whether one single-page run matches, and the line to print for it.
+
+    Never raises, whatever the command printed: a report of the wrong shape is a failed check."""
     report, problem = read_report(code, stdout, stderr)
     if report is None or not report["pages"]:
         return False, f"FAIL {name}: {problem or 'the report has no page'}"
     page = report["pages"][0]
-    found = {finding.get("rule") for finding in page.get("findings", [])}
+    if not isinstance(page, dict):
+        return False, f"FAIL {name}: the page entry is {type(page).__name__}, not an object (exit {code})"
+    findings = page.get("findings", [])
+    if not isinstance(findings, list) or not all(isinstance(finding, dict) for finding in findings):
+        return False, f"FAIL {name}: findings is not a list of objects (exit {code})"
+    found = {rule if isinstance(rule, str) else repr(rule) for rule in (finding.get("rule") for finding in findings)}
     good = (page.get("verdict"), found, code) == (verdict, rules, exit_code)
-    line = f"{'ok  ' if good else 'FAIL'} {name}: verdict {page.get('verdict')}, rules {sorted(map(str, found))}, exit {code}"
+    line = f"{'ok  ' if good else 'FAIL'} {name}: verdict {page.get('verdict')!r}, rules {sorted(found)}, exit {code}"
     return good, line + ("" if good else f"  (expected {verdict}, {sorted(rules)}, exit {exit_code})")
 
 
@@ -95,29 +103,30 @@ def judge_all(code: int, stdout: str, stderr: str) -> tuple[bool, str]:
     return good, line + ("" if good else f"  (expected {expected}, version 1, exit 1)")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None, runner=invoke) -> int:
+    """Exit status: 0 when every check passes, 1 otherwise. `runner` stands in for the command in tests."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--command", required=True, help="path of the installed cjk-sense")
     parser.add_argument("--work", required=True, type=Path, help="directory to write the pages into")
     parser.add_argument("--channel", help="installed browser to drive (chrome, msedge)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     write_site(args.work)
     server = serve(args.work)
     base = f"http://127.0.0.1:{server.server_address[1]}"
     results = []
     try:
         for name, (_, _, verdict, rules, exit_code) in PAGES.items():
-            results.append(judge_page(name, *invoke(args.command, [f"{base}/{name}"], args.channel),
+            results.append(judge_page(name, *runner(args.command, [f"{base}/{name}"], args.channel),
                                       verdict, rules, exit_code))
-        results.append(judge_all(*invoke(args.command, [f"{base}/{name}" for name in PAGES], args.channel)))
+        results.append(judge_all(*runner(args.command, [f"{base}/{name}" for name in PAGES], args.channel)))
     finally:
         server.shutdown()
     for _, line in results:
         print(line)
     passed = sum(good for good, _ in results)
     print(f"e2e: {passed}/{len(results)} checks pass")
-    sys.exit(0 if passed == len(results) else 1)
+    return 0 if passed == len(results) else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

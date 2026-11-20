@@ -31,7 +31,17 @@ tables, the snapshot or the rules.
 installed command against three pages served over HTTP (macOS, Chromium): 4/4 checks pass
 (a clean page: ok, exit 0; a Chinese font ahead of Japanese fonts: `han-font`, exit 1; a wrong
 `lang`: `lang-mismatch`, exit 1; all three in one run: 2 fail, 1 ok, exit 1). Negative control:
-with one service removed from the wheel's file list, all four checks fail and the script exits 1.
+with one service removed from the wheel's file list, all four checks fail and the script exits 1
+(exit status recorded on 2026-11-20 for each of the five listed files in turn).
+
+## Hostile page (2026-11-20)
+
+One page served locally whose script puts a lone surrogate, direction marks and overrides,
+zero-width characters, ESC, DEL, a C1 control and a line separator into an element id, a class
+name, the text and the title (macOS, Chromium). In both formats the command exits 1 with a
+normal report (`han-font`, the page names Chinese fonts first). Standard output, standard
+error and the `--out` file hold none of those characters raw; the JSON report still holds all
+of them as escapes. Before this date the same page ended in a traceback. One page, one browser.
 
 ## Field run: Japanese pages of open-source projects
 
@@ -60,7 +70,9 @@ Cause of the 18 font failures: in 13 a Chinese or Korean font is named in `font-
 of any Japanese font (typically `"PingFang SC"` and `"Microsoft YaHei"` after `-apple-system`),
 in 4 the text sits under a Chinese or Korean `lang`, and 1 is the browser-only case above.
 
-`python evals/field_summary.py runs/field.json` prints these counts from a report.
+`python evals/field_summary.py runs/field.json` prints every number in this section from the
+report (the block `among_ja_pages`: counts per platform, per kind of confirmation, per cause,
+and the declared languages of the mismatches).
 
 ## What has not been measured
 

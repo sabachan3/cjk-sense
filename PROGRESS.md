@@ -6,7 +6,7 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
 
 - Version 0.1.0, public, installable from the repository URL. Not on PyPI.
 - Five rules: `han-font`, `lang-mismatch`, `lang-missing`, `wrong-language`, `page-error`.
-- Gate: 59 tests, under 1 s, runs as the pre-commit hook.
+- Gate: 74 tests, under 1 s, runs as the pre-commit hook.
 - Browser eval: 22/22 on macOS (Chromium) rerun 2026-11-20; 22/22 on Windows 11 (Edge) recorded
   2026-11-19.
 - End-to-end check of the installed wheel: 4/4 on macOS, 2026-11-20.
@@ -26,6 +26,15 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
   check reports a crashed command as a failed check instead of a traceback, with gate tests;
   `MIN_SCRIPT_SHARE` named in `detect_lib.py`; a gate test keeps the two `REPORT_VERSION`
   constants equal; statements in `CLAUDE.md`, `DECISIONS.md` and `features.json` corrected.
+- 2026-11-20: corrections after a second independent review. Files changed: `cjk_sense/cli.py`
+  (JSON escaping by Unicode category, browser error text cleaned), `services/check/check_lib.py`
+  (`clean()` keeps printable characters only), `evals/e2e.py` (wrongly typed reports and
+  non-UTF-8 output are failed checks; `main()` returns its exit status), `evals/field_summary.py`
+  (prints every field number the documents quote), `tests/test_cli.py`, `tests/test_e2e_judge.py`,
+  `tests/test_field_summary.py` (new), `services/detect/tests/test_detect_lib.py` (boundary of
+  `MIN_SCRIPT_SHARE`), `CLAUDE.md`, `DECISIONS.md`, `README.md`, `docs/results.md`,
+  `features.json`, this file. The earlier entry also changed `docs/results.md` and
+  `.agent-sense.toml`, which it did not list.
 
 ## In Progress
 
@@ -44,8 +53,11 @@ Nothing.
   probe may hold only characters the Korean font lacks (one case in the field run).
 - The Windows browser eval cannot be rerun from macOS; `features.json` marks it `blocked`.
   Not rerun on Windows since 2026-11-19. Changes since then: a docstring in `fonts_lib.py`,
-  a named constant in `detect_lib.py` (same value), JSON output escaping in `cli.py`. None
+  a named constant in `detect_lib.py` (same value), JSON output escaping in `cli.py`, and
+  `check_lib.clean()` now dropping every non-printable character from text output. None
   changes a prediction or a rule, but that is argued, not shown by a Windows run.
+- Until 2026-11-20 a page holding a lone surrogate crashed the command with exit 1, the same
+  code as a failing page. Fixed and gate-tested; reports made before that date are unaffected.
 - There is no CI in this repository itself: the gate runs only through the local hook.
 - No lock file: `uv run --with` resolves `playwright>=1.49` and `pytest` at run time, so a
   breaking upstream release would show up as a gate or eval failure, not be prevented.

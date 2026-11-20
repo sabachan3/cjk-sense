@@ -21,10 +21,10 @@ fixed rules. No model, no network service. Python 3.10+, version 0.1.0, MIT, pub
 | `services/check/check_lib.py` | findings, verdict, report, exit code, text output |
 | `contracts/schema.py`, `contracts/README.md` | snapshot, analysed page, report v1 |
 | `cjk_sense/cli.py` | the command, and the only place where services are put together |
-| `services/*/tests`, `tests/test_cli.py` | gate tests |
+| `services/*/tests`, `tests/` | gate tests |
 | `evals/eval_fixtures.py` | browser eval, 22 pages with a known answer |
-| `evals/e2e.py` | installed wheel against pages served over HTTP; its verdict functions have gate tests |
-| `evals/field_summary.py` | counts from a report over many pages |
+| `evals/e2e.py` | installed wheel against pages served over HTTP; its verdict functions and exit status have gate tests |
+| `evals/field_summary.py` | every field number quoted in the documents, from a report over many pages; gate-tested |
 | `docs/results.md` | browser eval, end-to-end and field results, by date, and what has not been measured |
 | `DECISIONS.md` | why things are the way they are |
 
@@ -66,15 +66,19 @@ diff and include its verdict.
    bumps the report `version`. `REPORT_VERSION` exists in `contracts/schema.py` and in
    `check_lib.py` (the one written into reports); both change together, and a gate test
    fails when they differ.
-3. Character ranges and control characters in source are written as `\uXXXX` escapes
-   (`detect_lib.RANGES`, `check_lib._CONTROL`). After writing such a file, check the escapes
+3. Character ranges in source are written as `\uXXXX` escapes (`detect_lib.RANGES`), and tests
+   build invisible characters from integers with `chr()`. After writing such a file, check the escapes
    are still escapes: some editing tools turn them into literal characters.
 4. The gate stays free of browser and network and under 2 s. Browser work belongs in `evals/`.
 5. A file the installed command needs must be listed under `force-include` in
    `pyproject.toml`; `scripts/e2e.sh` is the proof.
-6. Text that comes from a page never reaches a terminal raw: the text report goes through
-   `check_lib.clean()`, the JSON report through `cli.json_text()`, which writes control and
-   direction characters as `\uXXXX` escapes. A new output path needs one of the two.
+6. Text that comes from a page never reaches a terminal raw. The rule is by Unicode category,
+   not by a list. Text output and error messages go through `check_lib.clean()`, which keeps
+   only characters for which `str.isprintable()` is true (other white space becomes a space).
+   JSON, on stdout and in the `--out` file, goes through `cli.json_text()`, which writes every
+   character of category Cc, Cf, Zl, Zp, Cs or Co as a `\uXXXX` escape, so the data is
+   unchanged. That covers direction marks, zero-width characters and lone surrogates. A new
+   output path needs one of the two.
 7. No model and no network service at run time. The only runtime dependency is `playwright`.
 8. A font table entry names the platforms that ship the font. Do not add one from memory:
    confirm with the browser eval on that platform, or mark it unverified in `docs/results.md`.
@@ -84,7 +88,8 @@ diff and include its verdict.
     end-to-end numbers are the printed output of `scripts/eval.sh` and `scripts/e2e.sh`; no
     output file is kept, and the Windows result exists only as the line in `docs/results.md`.
 11. Thresholds are the constants at the top of `check_lib.py` and `detect_lib.py`; a change
-    needs a `DECISIONS.md` entry and the browser eval.
+    needs a `DECISIONS.md` entry, the gate tests that pin the boundary, and the browser eval.
+    The browser eval alone does not notice a change to `MIN_SCRIPT_SHARE`; its gate test does.
 12. `state` in `features.json` becomes `passing` only after its `verify` command exited 0.
 13. Do not weaken a test to make it pass: no skips, no removed assertions, no loosened expected
     values without a `DECISIONS.md` entry saying why the old expectation was wrong.

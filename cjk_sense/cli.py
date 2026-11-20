@@ -20,8 +20,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import re
 import sys
+import unicodedata
 from pathlib import Path
 
 PACKAGE = Path(__file__).resolve().parent
@@ -66,17 +66,26 @@ def analyse(snapshot: dict, expect: str | None, platforms: tuple[str, ...]) -> d
     return page
 
 
-# json.dumps escapes the C0 controls itself. With ensure_ascii off it leaves DEL, the C1 controls
-# (0x9b starts an escape sequence on some terminals), the line separators and the direction
-# overrides as they are, and all of them can come from a page.
-_JSON_UNSAFE = re.compile("[" + "".join(f"{chr(first)}-{chr(last)}" for first, last in (
-    (0x7F, 0x9F), (0x2028, 0x2029), (0x202A, 0x202E), (0x2066, 0x2069))) + "]")
+# Decided by Unicode category, not by a list: everything invisible is written as an escape.
+# Cc controls (json.dumps escapes only the C0 ones), Cf format characters (direction marks,
+# overrides and isolates, zero-width characters, tags), Zl and Zp separators, Cs lone surrogates
+# (which cannot be encoded, so printing one would raise) and Co private use. All can come from a page.
+_JSON_UNSAFE_CATEGORIES = {"Cc", "Cf", "Zl", "Zp", "Cs", "Co"}
+
+
+def _json_escape(char: str) -> str:
+    code = ord(char)
+    if code > 0xFFFF:  # JSON escapes are UTF-16: a character outside the BMP takes a surrogate pair
+        code -= 0x10000
+        return f"\\u{0xD800 + (code >> 10):04x}\\u{0xDC00 + (code & 0x3FF):04x}"
+    return f"\\u{code:04x}"
 
 
 def json_text(report: dict) -> str:
-    """The report as JSON that is safe to print: same data, risky characters written as escapes."""
+    """The report as JSON that is safe to print or store: same data, invisible characters as escapes."""
     text = json.dumps(report, ensure_ascii=False, indent=2)
-    return _JSON_UNSAFE.sub(lambda match: f"\\u{ord(match.group()):04x}", text)
+    return "".join(_json_escape(char) if char != "\n" and unicodedata.category(char) in _JSON_UNSAFE_CATEGORIES else char
+                   for char in text)
 
 
 def run(snapshots: list[dict], expect: str | None, platforms: tuple[str, ...]) -> dict:
@@ -140,7 +149,8 @@ def main(argv: list[str] | None = None, snapshots=take_snapshots) -> int:
         return 2
     except Exception as error:
         hint = BROWSER_HINT if "Executable doesn't exist" in str(error) or "playwright install" in str(error) else ""
-        print(f"could not start the browser: {str(error).splitlines()[0][:200]}\n{hint}".rstrip(), file=sys.stderr)
+        first = check_lib.clean((str(error).splitlines() or [type(error).__name__])[0], 200)
+        print(f"could not start the browser: {first}\n{hint}".rstrip(), file=sys.stderr)
         return 2
     report = run(taken, args.expect, platforms)
     if args.out:

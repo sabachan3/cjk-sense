@@ -95,7 +95,7 @@ CI example: [docs/github-actions.yml](docs/github-actions.yml).
 See [docs/results.md](docs/results.md). In short:
 
 - 22 purpose-built pages give the expected findings in Chromium on macOS and in Edge on
-  Windows 11, and every font prediction matched the font the browser used.
+  Windows 11, and every font prediction that names a region matched the font the browser used.
 - On 265 Japanese pages of open-source projects, 6.8% failed the font rule (6.4% on Apple
   systems, 3.0% on Windows) and 11.3% declared a `lang` of another script.
 

@@ -56,3 +56,75 @@ def test_all_pages_run():
     assert not e2e.judge_all(1, report(summary=summary, version=2), "")[0]           # wrong report version
     good, line = e2e.judge_all(1, "", "boom")
     assert not good and "exit 1" in line and "boom" in line
+
+
+def shaped(pages):
+    return json.dumps({"version": 1, "summary": {}, "pages": pages})
+
+
+def test_wrongly_typed_reports_are_fail_lines_not_exceptions():
+    for pages in ([3], ["x"], [None], [{"verdict": "ok", "findings": 5}], [{"verdict": "ok", "findings": None}],
+                  [{"verdict": "ok", "findings": [1]}], [{"verdict": "ok", "findings": "han-font"}]):
+        good, line = e2e.judge_page("p.html", 0, shaped(pages), "", "ok", set(), 0)
+        assert not good and line.startswith("FAIL p.html:"), pages
+
+
+def test_rule_of_the_wrong_type_is_a_fail_line():
+    for rule in ([1], {"a": 1}, 5, None):
+        good, line = e2e.judge_page("p.html", 1, shaped([{"verdict": "fail", "findings": [{"rule": rule}]}]), "",
+                                    "fail", {"han-font"}, 1)
+        assert not good and line.startswith("FAIL p.html:"), rule
+
+
+def test_all_pages_run_with_a_summary_of_the_wrong_type_fails_without_raising():
+    for summary in (5, None, [1], "x"):
+        stdout = json.dumps({"version": 1, "summary": summary, "pages": []})
+        assert not e2e.judge_all(1, stdout, "")[0]
+
+
+def test_output_that_is_not_utf8_is_read_without_raising(tmp_path):
+    script = tmp_path / "fake"
+    script.write_text(f"#!{sys.executable}\nimport sys\nsys.stdout.buffer.write(bytes([0xff, 0xfe, 0x80]))\n"
+                      "sys.stderr.buffer.write(bytes([0xff]) + b'bad bytes')\nsys.exit(3)\n", encoding="utf-8")
+    script.chmod(0o755)
+    code, stdout, stderr = e2e.invoke(str(script), ["http://x/"], None)
+    assert code == 3
+    good, line = e2e.judge_page("p.html", code, stdout, stderr, "ok", set(), 0)
+    assert not good and "exit 3" in line and "bad bytes" in line
+
+
+def test_a_command_that_cannot_be_started_is_a_fail_line(tmp_path):
+    code, stdout, stderr = e2e.invoke(str(tmp_path / "absent"), ["http://x/"], None)
+    good, line = e2e.judge_page("p.html", code, stdout, stderr, "ok", set(), 0)
+    assert not good and "FileNotFoundError" in line
+
+
+def perfect_runner(command, urls, channel):
+    """Stands in for the installed command: answers every page with exactly what PAGES expects."""
+    pages = []
+    for url in urls:
+        _, _, verdict, rules, _ = e2e.PAGES[url.rsplit("/", 1)[1]]
+        pages.append({"verdict": verdict, "findings": [{"rule": rule} for rule in sorted(rules)]})
+    counts = {name: sum(page["verdict"] == name for page in pages) for name in ("fail", "warn", "ok")}
+    code = 1 if counts["fail"] else 0
+    return code, json.dumps({"version": 1, "summary": {"pages": len(pages), **counts}, "pages": pages}), ""
+
+
+def test_main_exits_zero_only_when_every_check_passes(tmp_path, capsys):
+    argv = ["--command", "unused", "--work", str(tmp_path / "site")]
+    assert e2e.main(argv, runner=perfect_runner) == 0
+    assert "e2e: 4/4 checks pass" in capsys.readouterr().out
+
+    def one_wrong(command, urls, channel):
+        code, stdout, stderr = perfect_runner(command, urls, channel)
+        return (0, stdout, stderr) if len(urls) == 1 and urls[0].endswith("wrong-lang.html") else (code, stdout, stderr)
+
+    assert e2e.main(argv, runner=one_wrong) == 1
+    assert "e2e: 3/4 checks pass" in capsys.readouterr().out
+
+    def crash(command, urls, channel):
+        return 1, "", "ModuleNotFoundError: No module named 'check_lib'"
+
+    assert e2e.main(argv, runner=crash) == 1
+    out = capsys.readouterr().out
+    assert "e2e: 0/4 checks pass" in out and out.count("FAIL") == 4 and "Traceback" not in out

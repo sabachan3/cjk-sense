@@ -57,3 +57,16 @@ def test_language_class_and_region():
 
 def test_describe():
     assert lib.describe("ja") == "Japanese" and lib.describe("latin") == "Latin script" and lib.describe(None) == "unknown"
+
+
+def mixed(latin: int, cyrillic: int, greek: int = 0) -> str:
+    """Text with exactly this many letters of each script (no CJK)."""
+    return "a" * latin + chr(0x0436) * cyrillic + chr(0x03B1) * greek
+
+
+def test_a_script_names_the_page_at_exactly_half_of_the_letters_and_not_below():
+    assert lib.MIN_SCRIPT_SHARE == 0.5
+    assert detect(mixed(50, 30, 20)) == "latin"       # exactly 50% of 100 letters
+    assert detect(mixed(49, 30, 21)) is None          # 49%: too mixed to name
+    assert detect(mixed(51, 49)) == "latin"
+    assert detect(mixed(30, 50, 20)) == "cyrillic"

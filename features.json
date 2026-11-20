@@ -36,7 +36,7 @@
       "behavior": "In Edge on Windows 11 the 22 known-answer pages give exactly the expected rules, and every font prediction that names a region matches the font the browser used (predictions of 'system' are counted but accept any font).",
       "verify": "scripts/eval.sh --channel msedge",
       "state": "blocked",
-      "note": "Must run on Windows; it cannot be verified from macOS or Linux. Last recorded result: 22/22 on 2026-11-19; the only record is the line in docs/results.md, no output file was kept. Rerun on Windows after any change to the behaviour of fonts_lib.py, snapshot_lib.py, detect_lib.py or check_lib.py; changes since then are listed in PROGRESS.md."
+      "note": "Must run on Windows; it cannot be verified from macOS or Linux. Last recorded result: 22/22 on 2026-11-19; the only record is the line in docs/results.md, no output file was kept. Rerun on Windows after any change to the behaviour of fonts_lib.py, snapshot_lib.py, detect_lib.py, check_lib.py or cjk_sense/cli.py; changes since then are listed in PROGRESS.md."
     },
     {
       "id": "installed-package",
