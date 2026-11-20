@@ -4,25 +4,25 @@
     {
       "id": "font-region-prediction",
       "behavior": "From font-family, lang and loaded web fonts, predict per platform (mac, windows, ios, android) which region's font draws Han text.",
-      "verify": "uv run --quiet --no-project --with pytest pytest -q services/fonts/tests",
+      "verify": "uv run --quiet --no-project --with-requirements requirements-gate.txt pytest -q services/fonts/tests",
       "state": "passing"
     },
     {
       "id": "language-detection",
       "behavior": "Tell Japanese, Chinese and Korean text apart by script counts, and other languages down to their script.",
-      "verify": "uv run --quiet --no-project --with pytest pytest -q services/detect/tests",
+      "verify": "uv run --quiet --no-project --with-requirements requirements-gate.txt pytest -q services/detect/tests",
       "state": "passing"
     },
     {
       "id": "rules-and-report",
       "behavior": "Turn an analysed page into han-font, lang-mismatch, lang-missing, wrong-language and page-error findings, a verdict, report version 1 and an exit code.",
-      "verify": "uv run --quiet --no-project --with pytest pytest -q services/check/tests",
+      "verify": "uv run --quiet --no-project --with-requirements requirements-gate.txt pytest -q services/check/tests",
       "state": "passing"
     },
     {
       "id": "command-line",
       "behavior": "cjk-sense check accepts URLs, --urls-file, --expect, --platforms, --fail-on, --format and --out, and exits 0, 1 or 2.",
-      "verify": "uv run --quiet --no-project --with pytest pytest -q tests services/snapshot/tests",
+      "verify": "uv run --quiet --no-project --with-requirements requirements-gate.txt pytest -q tests services/snapshot/tests",
       "state": "passing"
     },
     {

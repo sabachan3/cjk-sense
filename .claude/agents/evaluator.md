@@ -47,5 +47,13 @@ Findings: numbered, each with file:line and what is wrong; "none" if none
 Not verified: what you could not check and why
 ```
 
-PASS only when every command you ran exited 0, there are no findings, and "Not verified" holds
-nothing the change depends on. When unsure, FAIL and say what evidence is missing.
+Class every finding:
+
+- A: a defect a user of the tool can hit in normal or mistaken use, or a false statement in a document.
+- B: wording, a missing test or a documentation gap that misleads nobody about behaviour.
+- C: a theoretical or hostile input that no ordinary use produces.
+
+FAIL when a command you ran did not exit 0, when there is a class A finding, or when "Not
+verified" holds something the change depends on. Otherwise PASS, with the B and C findings
+listed. A finding that repeats an entry under Known Issues in `PROGRESS.md` is not class A.
+When unsure whether a finding is A, say what evidence is missing and class it A.

@@ -3,4 +3,4 @@
 # macOS: scripts/eval.sh            Windows: scripts/eval.sh --channel msedge
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
-uv run --quiet --no-project --with "playwright>=1.49" python evals/eval_fixtures.py "$@"
+uv run --quiet --no-project --with-requirements requirements-browser.txt python evals/eval_fixtures.py "$@"

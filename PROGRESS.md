@@ -15,37 +15,13 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
 
 ## Completed
 
-- 2026-11-19: 0.1.0, the four services, contracts, command, browser eval on macOS and Windows,
-  field run, results document, GitHub Actions example.
-- 2026-11-20: agent harness: `CLAUDE.md`, this file, `DECISIONS.md`, `features.json`,
-  `scripts/setup.sh`, `scripts/e2e.sh` with `evals/e2e.py`, optional Stop hook, evaluator
-  subagent definition. Same change: README layout and development sections rewritten, and a
-  stale path in the `fonts_lib.py` docstring corrected.
-- 2026-11-20: corrections after an independent review of that change. JSON output now writes
-  control and direction characters from a page as escapes (`cli.json_text`); the end-to-end
-  check reports a crashed command as a failed check instead of a traceback, with gate tests;
-  `MIN_SCRIPT_SHARE` named in `detect_lib.py`; a gate test keeps the two `REPORT_VERSION`
-  constants equal; statements in `CLAUDE.md`, `DECISIONS.md` and `features.json` corrected.
-- 2026-11-20: corrections after a second independent review. Files changed: `cjk_sense/cli.py`
-  (JSON escaping by Unicode category, browser error text cleaned), `services/check/check_lib.py`
-  (`clean()` keeps printable characters only), `evals/e2e.py` (wrongly typed reports and
-  non-UTF-8 output are failed checks; `main()` returns its exit status), `evals/field_summary.py`
-  (prints every field number the documents quote), `tests/test_cli.py`, `tests/test_e2e_judge.py`,
-  `tests/test_field_summary.py` (new), `services/detect/tests/test_detect_lib.py` (boundary of
-  `MIN_SCRIPT_SHARE`), `CLAUDE.md`, `DECISIONS.md`, `README.md`, `docs/results.md`,
-  `features.json`, this file. The earlier entry also changed `docs/results.md` and
-  `.agent-sense.toml`, which it did not list.
-- 2026-11-20: third review. `--out` and `--urls-file` that cannot be written or read, and
-  `--workers`, `--timeout`, `--wait` out of range, exit 2 (before: traceback with exit 1, and
-  `--workers 0` hung). Standard output that is not UTF-8 gets escapes instead of a crash.
-  `check_lib.clean` decides by category and keeps unassigned code points, so reports no longer
-  differ between Python versions. Files: `cjk_sense/cli.py`, `services/check/check_lib.py`,
-  `tests/test_cli.py`, `README.md`, `CLAUDE.md`, `DECISIONS.md`, `docs/results.md`,
-  `evals/field_summary.py`, this file.
-- 2026-11-20: checked on a real Windows 11 machine. Browser eval in Edge 22/22 on the current
-  code (output kept in `docs/records/`), gate 87 passed, redirected and piped output of a page
-  with characters outside code page 932 works where the previous version crashed. One test made
-  portable (`tests/test_e2e_judge.py`), two test file writes given an explicit encoding.
+- 2026-11-19: 0.1.0: four services, contracts, command, browser eval on macOS and Windows, field run.
+- 2026-11-20: agent documents, feature list, setup and end-to-end scripts.
+- 2026-11-20: three independent reviews. Fixed: crash on a lone surrogate, raw invisible characters
+  in output, tracebacks with exit 1 for unreadable or unwritable files, a hang on `--workers 0`,
+  output that is not UTF-8. Details are in `git log` and `docs/results.md`.
+- 2026-11-20: checked on a real Windows 11 machine (Edge eval 22/22, gate, redirected output).
+- 2026-11-20: CI workflow and pinned versions for the gate and the browser.
 
 ## In Progress
 
@@ -53,33 +29,34 @@ Nothing.
 
 ## Known Issues
 
-- Text output drops the zero-width joiner, so a joined emoji in a sample prints as its parts.
-- The hostile-page browser run in `docs/results.md` was by hand; no script reproduces it.
-- A page answered with HTTP 404 or 500 is checked like any other page.
-
+Limits of the design:
 - iOS and Android results are predictions from font lists. Never run on a device.
 - Linux desktops are not covered by the font table.
-- No person has judged the findings; false negatives on real sites are unmeasured.
 - Simplified and Traditional Chinese are one region.
 - A self-hosted font with an unusual name is treated as having no Han characters. The
   "confirmed in this browser" check catches that only where the machine has CJK fonts.
 - Only the state of the page after load is checked, not text behind menus, tabs or dialogs.
-- A page under `lang="ko"` with Japanese text can be predicted but not confirmed, because the
-  probe may hold only characters the Korean font lacks (one case in the field run).
-- The Windows browser eval cannot be started from macOS; `features.json` keeps it `blocked`. It was
-  rerun by hand on 2026-11-20 (22/22) and has to be rerun by hand after behaviour changes.
-- Until 2026-11-20 a page holding a lone surrogate crashed the command with exit 1, the same
-  code as a failing page. Fixed and gate-tested; reports made before that date are unaffected.
-- There is no CI in this repository itself: the gate runs only through the local hook.
-- No lock file: `uv run --with` resolves `playwright>=1.49` and `pytest` at run time, so a
-  breaking upstream release would show up as a gate or eval failure, not be prevented.
+- A page under `lang="ko"` with Japanese text can be predicted but not confirmed (one case in the field run).
+- A page answered with HTTP 404 or 500 is checked like any other page.
+- Text output drops the zero-width joiner, so a joined emoji in a sample prints as its parts.
+
+Not measured:
+- No person has judged the findings; false negatives on real sites are unmeasured.
+- The hostile-page browser run in `docs/results.md` was by hand; no script reproduces it.
+- The Windows browser eval in CI runs with an English display language; the recorded Windows
+  result (Japanese display language) is rerun by hand on the owner's machine after behaviour changes.
 
 ## Next Steps
 
-1. Run the browser eval on an iOS and an Android device or emulator, and add those platforms to
-   `PLATFORM` in `evals/eval_fixtures.py` when the font used can be read there.
-2. Add a CI workflow for this repository: gate on every push, browser eval on macOS and
-   Windows runners.
-3. Field run on Chinese and Korean pages, which so far appear only in the browser eval.
-4. Have a reader judge a sample of `han-font` findings, to tie the rule to what people notice.
-5. Decide on PyPI publication.
+A new session can start 1 or 2 alone. 3 to 5 need the owner.
+
+1. Add the hostile page of `docs/results.md` as fixtures in `evals/eval_fixtures.py` (a page whose
+   script sets a lone surrogate, direction marks and zero-width characters), so that result is
+   reproduced by `scripts/eval.sh` instead of by hand. Done when the eval passes with them on macOS.
+2. Field run on Chinese and Korean pages: collect URLs the way `docs/results.md` describes for
+   Japanese, run `cjk-sense check --urls-file ... --expect zh --out runs/field.zh.json`, summarise
+   with `evals/field_summary.py`, and add the counts to `docs/results.md`. Takes network and time.
+3. Owner: browser eval on an iOS and an Android device. Open question to settle first: how to
+   read the font a mobile browser used; without that the eval can only compare rules, not fonts.
+4. Owner: have a reader judge a sample of `han-font` findings.
+5. Owner: decide on PyPI publication.

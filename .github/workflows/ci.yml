@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: gate ${{ matrix.os }} py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.12"]
+        include:
+          - { os: ubuntu-latest, python: "3.10" }
+          - { os: windows-latest, python: "3.10" }
+          - { os: ubuntu-latest, python: "3.13" }
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: gate tests
+        shell: bash
+        run: scripts/test.sh
+
+  browser:
+    # The runners' display language is English, so this is a different condition from the
+    # recorded runs (Japanese display language). It checks that the tool still drives a real
+    # browser on each system and that the known-answer pages still give the expected rules.
+    name: browser eval ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, args: "" }
+          - { os: windows-latest, args: "--channel msedge" }
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: install the bundled browser
+        if: matrix.args == ''
+        shell: bash
+        run: uv run --quiet --no-project --with-requirements requirements-browser.txt playwright install chromium-headless-shell
+      - name: known-answer pages in a real browser
+        shell: bash
+        run: scripts/eval.sh ${{ matrix.args }}
+
+  package:
+    name: build, install, run the installed command
+    runs-on: macos-latest
+    timeout-minutes: 15
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: install the bundled browser
+        run: uv run --quiet --no-project --with-requirements requirements-browser.txt playwright install chromium-headless-shell
+      - name: end-to-end check of the installed wheel
+        run: scripts/e2e.sh
