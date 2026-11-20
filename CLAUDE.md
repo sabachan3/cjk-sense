@@ -26,7 +26,7 @@ MIT, public repository. Needs `uv` for every script here.
 | `evals/e2e.py` | installed wheel against pages served over HTTP; its verdict functions and exit status have gate tests |
 | `evals/field_summary.py` | every field count quoted in the documents (percentages are derived from them), from a report over many pages; gate-tested |
 | `docs/results.md`, `docs/records/` | results by date and what has not been measured; kept output of runs on other machines |
-| `requirements-*.txt`, `.github/workflows/ci.yml` | pinned versions for gate and browser (`uv pip compile --universal` from the `.in` files); CI: gate on three systems, browser eval on macOS and Windows, installed wheel |
+| `requirements-*.txt`, `.github/workflows/ci.yml` | pinned versions for gate and browser (`uv pip compile --universal` from the `.in` files); CI: gate on Linux, macOS and Windows, browser eval and installed wheel on macOS switched to Japanese |
 | `DECISIONS.md` | why things are the way they are |
 
 ## Commands

@@ -21,7 +21,7 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
   in output, tracebacks with exit 1 for unreadable or unwritable files, a hang on `--workers 0`,
   output that is not UTF-8. Details are in `git log` and `docs/results.md`.
 - 2026-11-20: checked on a real Windows 11 machine (Edge eval 22/22, gate, redirected output).
-- 2026-11-20: CI workflow and pinned versions for the gate and the browser.
+- 2026-11-20: CI workflow (8 jobs, green) and pinned versions for the gate and the browser.
 
 ## In Progress
 
@@ -43,8 +43,9 @@ Limits of the design:
 Not measured:
 - No person has judged the findings; false negatives on real sites are unmeasured.
 - The hostile-page browser run in `docs/results.md` was by hand; no script reproduces it.
-- The Windows browser eval in CI runs with an English display language; the recorded Windows
-  result (Japanese display language) is rerun by hand on the owner's machine after behaviour changes.
+- CI runs the browser eval on macOS only (runner switched to Japanese). Windows runners have no
+  Japanese fonts or display language, so the Windows browser eval is rerun by hand on the owner's
+  machine after behaviour changes; CI covers Windows with the gate tests only.
 
 ## Next Steps
 
