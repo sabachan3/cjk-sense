@@ -37,30 +37,24 @@ jobs:
         run: scripts/test.sh
 
   browser:
-    # The runners' display language is English, so this is a different condition from the
-    # recorded runs (Japanese display language). It checks that the tool still drives a real
-    # browser on each system and that the known-answer pages still give the expected rules.
-    name: browser eval ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    # The recorded results need Japanese as the display language, because pages that leave the
+    # font to the system get the system's choice. macOS runners are switched to Japanese below.
+    # Windows runners have no Japanese fonts and no Japanese display language, so the Windows
+    # browser eval stays a run by hand (docs/results.md); the Windows gate runs above.
+    name: browser eval macos-latest
+    runs-on: macos-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: macos-latest, args: "" }
-          - { os: windows-latest, args: "--channel msedge" }
     env:
       UV_PYTHON: "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+      - name: Japanese as the display language
+        run: defaults write -g AppleLanguages -array ja en && defaults read -g AppleLanguages
       - name: install the bundled browser
-        if: matrix.args == ''
-        shell: bash
         run: uv run --quiet --no-project --with-requirements requirements-browser.txt playwright install chromium-headless-shell
       - name: known-answer pages in a real browser
-        shell: bash
-        run: scripts/eval.sh ${{ matrix.args }}
+        run: scripts/eval.sh
 
   package:
     name: build, install, run the installed command
@@ -71,6 +65,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+      - name: Japanese as the display language
+        run: defaults write -g AppleLanguages -array ja en
       - name: install the bundled browser
         run: uv run --quiet --no-project --with-requirements requirements-browser.txt playwright install chromium-headless-shell
       - name: end-to-end check of the installed wheel
