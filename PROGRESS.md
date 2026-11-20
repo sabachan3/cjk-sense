@@ -35,12 +35,25 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
   `MIN_SCRIPT_SHARE`), `CLAUDE.md`, `DECISIONS.md`, `README.md`, `docs/results.md`,
   `features.json`, this file. The earlier entry also changed `docs/results.md` and
   `.agent-sense.toml`, which it did not list.
+- 2026-11-20: third review. `--out` and `--urls-file` that cannot be written or read, and
+  `--workers`, `--timeout`, `--wait` out of range, exit 2 (before: traceback with exit 1, and
+  `--workers 0` hung). Standard output that is not UTF-8 gets escapes instead of a crash.
+  `check_lib.clean` decides by category and keeps unassigned code points, so reports no longer
+  differ between Python versions. Files: `cjk_sense/cli.py`, `services/check/check_lib.py`,
+  `tests/test_cli.py`, `README.md`, `CLAUDE.md`, `DECISIONS.md`, `docs/results.md`,
+  `evals/field_summary.py`, this file.
 
 ## In Progress
 
 Nothing.
 
 ## Known Issues
+
+- Output to a standard output that is not UTF-8 (redirected output on Windows) is covered by
+  gate tests with a simulated stream only. Not run on a real Windows machine.
+- Text output drops the zero-width joiner, so a joined emoji in a sample prints as its parts.
+- The hostile-page browser run in `docs/results.md` was by hand; no script reproduces it.
+- A page answered with HTTP 404 or 500 is checked like any other page.
 
 - iOS and Android results are predictions from font lists. Never run on a device.
 - Linux desktops are not covered by the font table.

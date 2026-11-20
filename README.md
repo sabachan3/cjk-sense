@@ -49,7 +49,7 @@ cjk-sense check URL --channel chrome         # or an installed Chrome / Edge (ms
 | `page-error` | fail | the page did not load |
 
 Exit code 1 when a page fails (`--fail-on warn` or `never` to change that), 2 when the tool
-could not run.
+could not run (browser missing, a file that cannot be read or written, an option out of range).
 
 ## How the font rule works
 

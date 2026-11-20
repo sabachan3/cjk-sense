@@ -1,4 +1,8 @@
+import io
 import json
+import sys
+
+import pytest
 
 from cjk_sense import cli
 
@@ -206,3 +210,70 @@ def test_browser_error_without_text_still_exits_two(capsys):
 
     assert cli.main(["check", "u"], snapshots=boom) == 2
     assert "could not start the browser" in capsys.readouterr().err
+
+
+def test_out_that_cannot_be_written_exits_two_before_the_browser_runs(capsys, tmp_path):
+    called = []
+    for bad in (tmp_path, tmp_path / "missing" / "report.json"):
+        code = cli.main(["check", "http://a/ja", "--out", str(bad)], snapshots=lambda urls, args: called.append(1) or [])
+        assert code == 2 and "Traceback" not in capsys.readouterr().err
+    assert called == []
+    report = tmp_path / "report.json"
+
+    def boom(urls, args):
+        raise RuntimeError("no browser")
+
+    assert cli.main(["check", "http://a/ja", "--out", str(report)], snapshots=boom) == 2 and not report.exists()
+
+
+def test_urls_file_that_cannot_be_read_exits_two(capsys, tmp_path):
+    binary = tmp_path / "urls.bin"
+    binary.write_bytes(bytes([0xFF, 0xFE, 0x00]))
+    for bad in (tmp_path / "absent.txt", tmp_path, binary):
+        assert cli.main(["check", "--urls-file", str(bad)], snapshots=lambda urls, args: []) == 2
+    assert "Traceback" not in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("option,value", [("--workers", "0"), ("--workers", "-1"), ("--timeout", "-5"), ("--wait", "-1")])
+def test_out_of_range_options_are_usage_errors(option, value):
+    with pytest.raises(SystemExit) as exit_info:
+        cli.main(["check", "http://a/ja", option, value], snapshots=lambda urls, args: [])
+    assert exit_info.value.code == 2
+
+
+def test_empty_platforms_has_a_sensible_message(capsys):
+    assert cli.main(["check", "http://a/ja", "--platforms", ""], snapshots=lambda urls, args: []) == 2
+    assert "no platform given" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("fmt,encoding", [("text", "cp1252"), ("json", "cp1252"), ("text", "ascii"), ("json", "ascii")])
+def test_stdout_that_is_not_utf8_gets_escapes_not_a_crash(monkeypatch, fmt, encoding):
+    raw = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(raw, encoding=encoding, newline=""))
+    page = snapshot(stack='"PingFang SC", sans-serif')
+    code = cli.main(["check", "http://localhost/ja", "--format", fmt], snapshots=lambda urls, args: [page])
+    sys.stdout.flush()
+    text = raw.getvalue().decode(encoding)
+    assert code == 1 and "han-font" in text
+    if fmt == "json":
+        assert json.loads(text)["pages"][0]["findings"][0]["sample"] == page["groups"][0]["sample"]
+
+
+def test_clean_keeps_characters_newer_than_this_pythons_tables():
+    from cjk_sense.cli import check_lib
+    import unicodedata
+    unassigned = next(chr(code) for code in range(0x3134F, 0x10FFFF) if unicodedata.category(chr(code)) == "Cn")
+    assert check_lib.clean("a" + unassigned + "b") == "a" + unassigned + "b"   # a kanji this Python does not know yet
+    assert check_lib.clean("x" * 500, 40) == "x" * 40 and len(check_lib.clean("y" * 500)) == 300
+
+
+def test_every_page_controlled_field_of_the_text_report_is_cleaned(capsys):
+    from cjk_sense.cli import check_lib
+    bad = "".join(INVISIBLE)
+    report = {"pages": [{"url": "u" + bad, "html_lang": "ja" + bad, "language": "ja", "verdict": "fail", "findings": [
+        {"rule": "han-font", "severity": "fail", "message": "m" + bad, "fix": "f" + bad, "share": 0.5, "where": "w" + bad,
+         "sample": "s" + bad, "font_family": "ff" + bad, "confirmed_here": True, "used_here": ["used" + bad]}]}],
+        "summary": {"pages": 1, "fail": 1, "warn": 0, "ok": 0}}
+    text = check_lib.format_text(report)
+    assert not any(char in text for char in INVISIBLE)
+    assert all(part in text for part in ("m", "fix: f", "confirmed in this browser: used", "font-family: ff"))

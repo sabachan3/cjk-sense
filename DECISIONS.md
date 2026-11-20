@@ -7,8 +7,12 @@ by a measurement in `docs/results.md`, it is the author's reasoning, not a measu
 
 ## 2026-11-20: Text output removes invisible characters, JSON escapes them
 
-- Decision: decided by Unicode category. `check_lib.clean()` keeps only printable characters
-  in text output and error messages. `cli.json_text()` writes every character of category Cc,
+- Decision: decided by Unicode category. `check_lib.clean()` drops Cc, Cf, Zl, Zp, Cs
+  and Co from text output and error messages and turns other white space into a plain space.
+  Unassigned code points are kept (changed 2026-11-20: `str.isprintable()` also rejected kanji
+  newer than the running Python's Unicode tables, so a report differed between Python versions).
+  Known cost in text output: the zero-width joiner goes too, so a joined emoji prints as its
+  parts, and the full-width space prints as an ordinary space. JSON keeps both. `cli.json_text()` writes every character of category Cc,
   Cf, Zl, Zp, Cs or Co as a `\uXXXX` escape, on stdout and in the `--out` file.
 - Why: page text is untrusted and reaches terminals and CI logs. Text is for reading, so
   dropping is fine. JSON is data, so nothing may be lost: an escape keeps the value and shows

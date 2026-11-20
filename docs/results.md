@@ -41,7 +41,9 @@ zero-width characters, ESC, DEL, a C1 control and a line separator into an eleme
 name, the text and the title (macOS, Chromium). In both formats the command exits 1 with a
 normal report (`han-font`, the page names Chinese fonts first). Standard output, standard
 error and the `--out` file hold none of those characters raw; the JSON report still holds all
-of them as escapes. Before this date the same page ended in a traceback. One page, one browser.
+of them as escapes. Before this date the same page ended in a traceback. One page, one browser,
+run by hand: no script in this repository reproduces it. The gate tests cover the same characters
+through a fake page.
 
 ## Field run: Japanese pages of open-source projects
 
@@ -70,8 +72,9 @@ Cause of the 18 font failures: in 13 a Chinese or Korean font is named in `font-
 of any Japanese font (typically `"PingFang SC"` and `"Microsoft YaHei"` after `-apple-system`),
 in 4 the text sits under a Chinese or Korean `lang`, and 1 is the browser-only case above.
 
-`python evals/field_summary.py runs/field.json` prints every number in this section from the
-report (the block `among_ja_pages`: counts per platform, per kind of confirmation, per cause,
+`python evals/field_summary.py runs/field.json` prints every count in this section from the
+report; the percentages are those counts over the 265 Japanese pages. The list of 600 sites the
+288 were drawn from is not stored in this repository (the block `among_ja_pages`: counts per platform, per kind of confirmation, per cause,
 and the declared languages of the mismatches).
 
 ## What has not been measured

@@ -24,12 +24,15 @@ REPORT_VERSION = 1
 
 
 def _visible(char: str) -> str:
-    """A character as it may be shown: itself when printable, a space for any kind of white space,
-    nothing for the rest (controls, direction marks and overrides, zero-width characters, tags,
-    lone surrogates, private use, unassigned)."""
-    if char.isprintable():
-        return char
-    return " " if char in "\n\t" or unicodedata.category(char) == "Zs" else ""
+    """A character as it may be shown: a plain space for any kind of white space, nothing for
+    controls, format characters (direction marks and overrides, zero-width characters, tags), lone
+    surrogates and private use, and itself otherwise. Decided by category, not by `isprintable`:
+    that also rejects characters newer than the running Python's Unicode tables, which would make
+    rare kanji vanish from a report on an older Python."""
+    category = unicodedata.category(char)
+    if char in "\n\t" or category == "Zs":
+        return " "
+    return "" if category in ("Cc", "Cf", "Zl", "Zp", "Cs", "Co") else char
 
 
 def clean(text: object, limit: int = 300) -> str:

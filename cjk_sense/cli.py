@@ -66,7 +66,8 @@ def analyse(snapshot: dict, expect: str | None, platforms: tuple[str, ...]) -> d
     return page
 
 
-# Decided by Unicode category, not by a list: everything invisible is written as an escape.
+# Decided by Unicode category, not by a list. Six categories are written as escapes; other spaces
+# and unassigned code points stay as they are.
 # Cc controls (json.dumps escapes only the C0 ones), Cf format characters (direction marks,
 # overrides and isolates, zero-width characters, tags), Zl and Zp separators, Cs lone surrogates
 # (which cannot be encoded, so printing one would raise) and Co private use. All can come from a page.
@@ -81,8 +82,25 @@ def _json_escape(char: str) -> str:
     return f"\\u{code:04x}"
 
 
-def json_text(report: dict) -> str:
-    """The report as JSON that is safe to print or store: same data, invisible characters as escapes."""
+def utf8(stream) -> bool:
+    return (getattr(stream, "encoding", None) or "utf-8").lower().replace("-", "").replace("_", "") in ("utf8", "utf8sig")
+
+
+def write_out(text: str) -> None:
+    """Print to stdout whatever its encoding is. Redirected output on Windows is often a legacy code
+    page that cannot hold every character of a CJK page: what it lacks is written as a backslash escape."""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        encoding = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(text.encode(encoding, "backslashreplace").decode(encoding))
+
+
+def json_text(report: dict, ascii_only: bool = False) -> str:
+    """The report as JSON that is safe to print or store: same data, invisible characters as escapes.
+    With `ascii_only` every non-ASCII character is an escape, for an output that is not UTF-8."""
+    if ascii_only:
+        return json.dumps(report, ensure_ascii=True, indent=2)
     text = json.dumps(report, ensure_ascii=False, indent=2)
     return "".join(_json_escape(char) if char != "\n" and unicodedata.category(char) in _JSON_UNSAFE_CATEGORIES else char
                    for char in text)
@@ -132,15 +150,28 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None, snapshots=take_snapshots) -> int:
-    args = build_parser().parse_args(argv)
-    urls = read_urls(args)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.workers < 1 or args.timeout < 0 or args.wait < 0:
+        parser.error("--workers must be 1 or more, --timeout and --wait 0 or more")
+    try:
+        urls = read_urls(args)
+        if args.out:  # fail now, not after the browser has visited every page
+            existed = Path(args.out).exists()
+            with Path(args.out).open("a", encoding="utf-8"):
+                pass
+            if not existed:
+                Path(args.out).unlink()  # the check must not leave an empty report behind
+    except (OSError, UnicodeError) as error:
+        print(f"cjk-sense: {check_lib.clean(error)}", file=sys.stderr)
+        return 2
     if not urls:
         print("no URLs given", file=sys.stderr)
         return 2
     platforms = tuple(part.strip() for part in args.platforms.split(",") if part.strip())
     unknown = [platform for platform in platforms if platform not in fonts_lib.PLATFORMS]
     if unknown or not platforms:
-        print(f"unknown platform {', '.join(unknown)}; choose from {', '.join(fonts_lib.PLATFORMS)}", file=sys.stderr)
+        print(f"{'unknown platform ' + check_lib.clean(', '.join(unknown)) if unknown else 'no platform given'}; choose from {', '.join(fonts_lib.PLATFORMS)}", file=sys.stderr)
         return 2
     try:
         taken = snapshots(urls, args)
@@ -153,9 +184,13 @@ def main(argv: list[str] | None = None, snapshots=take_snapshots) -> int:
         print(f"could not start the browser: {first}\n{hint}".rstrip(), file=sys.stderr)
         return 2
     report = run(taken, args.expect, platforms)
+    write_out(json_text(report, ascii_only=not utf8(sys.stdout)) if args.format == "json" else check_lib.format_text(report))
     if args.out:
-        Path(args.out).write_text(json_text(report) + "\n", encoding="utf-8")
-    print(json_text(report) if args.format == "json" else check_lib.format_text(report))
+        try:
+            Path(args.out).write_text(json_text(report) + "\n", encoding="utf-8")
+        except OSError as error:
+            print(f"cjk-sense: {check_lib.clean(error)}", file=sys.stderr)
+            return 2
     return check_lib.exit_code(report, args.fail_on)
 
 

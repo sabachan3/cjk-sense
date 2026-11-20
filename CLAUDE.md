@@ -24,7 +24,7 @@ fixed rules. No model, no network service. Python 3.10+, version 0.1.0, MIT, pub
 | `services/*/tests`, `tests/` | gate tests |
 | `evals/eval_fixtures.py` | browser eval, 22 pages with a known answer |
 | `evals/e2e.py` | installed wheel against pages served over HTTP; its verdict functions and exit status have gate tests |
-| `evals/field_summary.py` | every field number quoted in the documents, from a report over many pages; gate-tested |
+| `evals/field_summary.py` | every field count quoted in the documents (percentages are derived from them), from a report over many pages; gate-tested |
 | `docs/results.md` | browser eval, end-to-end and field results, by date, and what has not been measured |
 | `DECISIONS.md` | why things are the way they are |
 
@@ -74,7 +74,7 @@ diff and include its verdict.
    `pyproject.toml`; `scripts/e2e.sh` is the proof.
 6. Text that comes from a page never reaches a terminal raw. The rule is by Unicode category,
    not by a list. Text output and error messages go through `check_lib.clean()`, which keeps
-   only characters for which `str.isprintable()` is true (other white space becomes a space).
+   everything except categories Cc, Cf, Zl, Zp, Cs and Co (other white space becomes a plain space; unassigned code points are kept).
    JSON, on stdout and in the `--out` file, goes through `cli.json_text()`, which writes every
    character of category Cc, Cf, Zl, Zp, Cs or Co as a `\uXXXX` escape, so the data is
    unchanged. That covers direction marks, zero-width characters and lone surrogates. A new

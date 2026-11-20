@@ -2,7 +2,8 @@
 
     python evals/field_summary.py runs/field.json
 
-Every field number quoted in README.md and docs/results.md is a value printed here.
+Every field count quoted in README.md and docs/results.md is a value printed here; the
+percentages there are those counts divided by the number of Japanese pages.
 """
 
 from __future__ import annotations
