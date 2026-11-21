@@ -19,7 +19,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import errno
 import json
+import os
 import sys
 import unicodedata
 from pathlib import Path
@@ -129,6 +131,27 @@ def read_urls(args: argparse.Namespace) -> list[str]:
     return list(dict.fromkeys(urls))
 
 
+def check_out_is_writable(out: Path) -> None:
+    """Raise OSError when the report could not be written, leaving nothing behind and following no
+    link to do so. Only a file this call created itself is removed again."""
+    if out.exists():                      # an existing file, also through a link: opening for append changes nothing
+        with out.open("a", encoding="utf-8"):
+            return
+    if out.is_symlink():                  # a link whose target does not exist yet: create nothing, ask about its folder
+        folder = Path(os.path.realpath(out)).parent
+        if not (folder.is_dir() and os.access(folder, os.W_OK)):
+            raise PermissionError(errno.EACCES, "cannot write the file this link points to", str(out))
+        return
+    descriptor = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL)   # O_EXCL: fails instead of following a link put there meanwhile
+    try:
+        made = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    now = os.lstat(out)
+    if (now.st_ino, now.st_dev) == (made.st_ino, made.st_dev):        # still the file made above
+        os.unlink(out)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="cjk-sense", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -158,12 +181,7 @@ def main(argv: list[str] | None = None, snapshots=take_snapshots) -> int:
     try:
         urls = read_urls(args)
         if args.out:  # fail now, not after the browser has visited every page
-            out = Path(args.out)
-            existed = out.exists()
-            with out.open("a", encoding="utf-8"):
-                pass
-            if not existed:  # the check must not leave an empty report behind; through a link, that is the link's target
-                (out.resolve() if out.is_symlink() else out).unlink()
+            check_out_is_writable(Path(args.out))
     except (OSError, UnicodeError) as error:
         print(f"cjk-sense: {check_lib.clean(error)}", file=sys.stderr)
         return 2

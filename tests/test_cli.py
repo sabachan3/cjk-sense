@@ -240,6 +240,24 @@ def test_out_through_a_dangling_link_leaves_nothing_behind_when_the_run_stops_ea
     assert link.is_symlink() and not target.exists()                                     # the link stays, no empty report appears
 
 
+def test_out_check_never_removes_a_file_it_did_not_create(tmp_path):
+    kept = tmp_path / "kept.json"
+    kept.write_text("mine", encoding="utf-8")
+    link = tmp_path / "link.json"
+    link.symlink_to(kept)
+    for path in (kept, link):                                  # existing file, directly and through a link
+        cli.check_out_is_writable(path)
+        assert kept.read_text(encoding="utf-8") == "mine"
+    fresh = tmp_path / "fresh.json"
+    cli.check_out_is_writable(fresh)
+    assert not fresh.exists()                                   # its own probe file is gone again
+    nowhere = tmp_path / "nowhere.json"
+    nowhere.symlink_to(tmp_path / "missing-folder" / "report.json")
+    with pytest.raises(OSError):
+        cli.check_out_is_writable(nowhere)
+    assert nowhere.is_symlink() and not (tmp_path / "missing-folder").exists()
+
+
 def test_urls_file_that_cannot_be_read_exits_two(capsys, tmp_path):
     binary = tmp_path / "urls.bin"
     binary.write_bytes(bytes([0xFF, 0xFE, 0x00]))
