@@ -134,3 +134,42 @@ def test_main_exits_zero_only_when_every_check_passes(tmp_path, capsys):
     assert e2e.main(argv, runner=crash) == 1
     out = capsys.readouterr().out
     assert "e2e: 0/4 checks pass" in out and out.count("FAIL") == 4 and "Traceback" not in out
+
+
+def test_version_check_wants_exactly_the_built_version_and_exit_zero():
+    assert e2e.judge_version(0, "cjk-sense 0.1.0\n", "", "0.1.0") == (True, "ok   --version: cjk-sense 0.1.0, exit 0")
+    for code, stdout in ((0, "cjk-sense 0.1.1\n"), (0, "0.1.0\n"), (2, "cjk-sense 0.1.0\n"), (0, ""),
+                         (0, "cjk-sense 0.1.0\nmore\n")):
+        good, line = e2e.judge_version(code, stdout, "boom", "0.1.0")
+        assert not good and line.startswith("FAIL --version:") and "boom" in line, (code, stdout)
+
+
+def test_help_check_wants_the_usage_text_and_exit_zero():
+    assert e2e.judge_help(0, "usage: cjk-sense [-h] [--version] {check} ...\n", "")[0]
+    for code, stdout in ((2, "usage: cjk-sense [-h] {check} ..."), (0, ""), (0, "usage: other {check}"), (0, "usage: cjk-sense")):
+        good, line = e2e.judge_help(code, stdout, "boom")
+        assert not good and line.startswith("FAIL --help:") and "boom" in line, (code, stdout)
+
+
+def test_main_with_expect_version_adds_the_two_checks_and_the_label(tmp_path, capsys):
+    argv = ["--command", "unused", "--work", str(tmp_path / "site"), "--expect-version", "0.1.0", "--label", "sdist"]
+    asked = []
+
+    def plain(command, arguments):
+        asked.append(arguments)
+        return (0, "cjk-sense 0.1.0\n", "") if arguments == ["--version"] else (0, "usage: cjk-sense {check}\n", "")
+
+    assert e2e.main(argv, runner=perfect_runner, plain=plain) == 0
+    assert asked == [["--version"], ["--help"]] and "e2e sdist: 6/6 checks pass" in capsys.readouterr().out
+
+    def stale(command, arguments):   # an installed command from another build
+        return (0, "cjk-sense 0.0.9\n", "") if arguments == ["--version"] else (0, "usage: cjk-sense {check}\n", "")
+
+    assert e2e.main(argv, runner=perfect_runner, plain=stale) == 1
+    out = capsys.readouterr().out
+    assert "e2e sdist: 5/6 checks pass" in out and "FAIL --version" in out
+
+
+def test_a_command_that_cannot_be_started_fails_the_version_check(tmp_path):
+    good, line = e2e.judge_version(*e2e.invoke_args(str(tmp_path / "absent"), ["--version"]), "0.1.0")
+    assert not good and "FileNotFoundError" in line

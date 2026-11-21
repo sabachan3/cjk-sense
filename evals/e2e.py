@@ -2,6 +2,7 @@
 
 Serves three pages from a local HTTP server and runs the installed `cjk-sense` on them, one
 process per page and once for all three. Verdicts, rules and exit codes must match exactly.
+With --expect-version the command must also print that version and its usage text.
 A command that crashes or prints no report is a failed check with its exit code and last line
 of stderr, never a traceback from here.
 Only the standard library is used here: the command under test lives in its own environment.
@@ -48,13 +49,38 @@ def serve(site: Path) -> http.server.ThreadingHTTPServer:
     return server
 
 
-def invoke(command: str, urls: list[str], channel: str | None) -> tuple[int, str, str]:
-    argv = [command, "check", *urls, "--format", "json"] + (["--channel", channel] if channel else [])
+def invoke_args(command: str, arguments: list[str]) -> tuple[int, str, str]:
+    """Run the command with these arguments: (exit code, stdout, stderr), -1 when it could not be run."""
     try:
-        done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace", timeout=180)
+        done = subprocess.run([command, *arguments], capture_output=True, encoding="utf-8", errors="replace", timeout=180)
     except (OSError, subprocess.TimeoutExpired) as error:
         return -1, "", f"{type(error).__name__}: {error}"
     return done.returncode, done.stdout, done.stderr
+
+
+def invoke(command: str, urls: list[str], channel: str | None) -> tuple[int, str, str]:
+    return invoke_args(command, ["check", *urls, "--format", "json"] + (["--channel", channel] if channel else []))
+
+
+def last_line(text: str) -> str:
+    return (text.strip().splitlines() or ["nothing printed"])[-1][:300]
+
+
+def judge_version(code: int, stdout: str, stderr: str, version: str) -> tuple[bool, str]:
+    """`--version` of the installed command must print exactly the version that was built."""
+    good = code == 0 and stdout.strip() == f"cjk-sense {version}"
+    if good:
+        return True, f"ok   --version: {stdout.strip()}, exit 0"
+    return False, (f"FAIL --version: printed {last_line(stdout)!r}, exit {code}  (expected 'cjk-sense {version}', exit 0; "
+                   f"stderr: {last_line(stderr)})")
+
+
+def judge_help(code: int, stdout: str, stderr: str) -> tuple[bool, str]:
+    """`--help` must exit 0 and name the command and its one subcommand."""
+    good = code == 0 and "usage: cjk-sense" in stdout and "check" in stdout
+    if good:
+        return True, "ok   --help: usage text with the check command, exit 0"
+    return False, f"FAIL --help: exit {code}, no usage text for cjk-sense check  (stderr: {last_line(stderr)})"
 
 
 def read_report(code: int, stdout: str, stderr: str) -> tuple[dict | None, str]:
@@ -103,18 +129,24 @@ def judge_all(code: int, stdout: str, stderr: str) -> tuple[bool, str]:
     return good, line + ("" if good else f"  (expected {expected}, version 1, exit 1)")
 
 
-def main(argv: list[str] | None = None, runner=invoke) -> int:
-    """Exit status: 0 when every check passes, 1 otherwise. `runner` stands in for the command in tests."""
+def main(argv: list[str] | None = None, runner=invoke, plain=invoke_args) -> int:
+    """Exit status: 0 when every check passes, 1 otherwise. `runner` and `plain` stand in for the
+    command in tests. With --expect-version, `--version` and `--help` are checked as well."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--command", required=True, help="path of the installed cjk-sense")
     parser.add_argument("--work", required=True, type=Path, help="directory to write the pages into")
     parser.add_argument("--channel", help="installed browser to drive (chrome, msedge)")
+    parser.add_argument("--expect-version", help="also check --version (must print this version) and --help")
+    parser.add_argument("--label", help="what was installed (wheel, sdist), shown in the last line")
     args = parser.parse_args(argv)
     write_site(args.work)
     server = serve(args.work)
     base = f"http://127.0.0.1:{server.server_address[1]}"
     results = []
     try:
+        if args.expect_version:
+            results.append(judge_version(*plain(args.command, ["--version"]), args.expect_version))
+            results.append(judge_help(*plain(args.command, ["--help"])))
         for name, (_, _, verdict, rules, exit_code) in PAGES.items():
             results.append(judge_page(name, *runner(args.command, [f"{base}/{name}"], args.channel),
                                       verdict, rules, exit_code))
@@ -124,7 +156,7 @@ def main(argv: list[str] | None = None, runner=invoke) -> int:
     for _, line in results:
         print(line)
     passed = sum(good for good, _ in results)
-    print(f"e2e: {passed}/{len(results)} checks pass")
+    print(f"e2e{' ' + args.label if args.label else ''}: {passed}/{len(results)} checks pass")
     return 0 if passed == len(results) else 1
 
 
