@@ -5,6 +5,26 @@ Newest first. Each entry: what was decided, why, and what was rejected.
 Entries dated before 2026-11-20 were written down on 2026-11-20. Where a reason is not backed
 by a measurement in `docs/results.md`, it is the author's reasoning, not a measured fact.
 
+## 2026-11-22: A URL list may start with a byte order mark
+
+- Decision: `--urls-file` is read as `utf-8-sig`, and a comment line may be indented.
+- Why: a list saved by a Windows editor gave its first URL an invisible leading character, and
+  that page was reported as `page-error` instead of being checked (found in review).
+- Rejected: documenting "save without a byte order mark" (the tool is meant to run on Windows).
+
+## 2026-11-20: Versions for the gate and the browser are pinned; the Windows browser eval stays by hand
+
+- Decision: `requirements-gate.txt` and `requirements-browser.txt`, compiled from their `.in`
+  files, are what the gate, the evals and CI install. `scripts/e2e.sh` installs the wheel under
+  the browser pins as constraints. The Windows browser eval is not a CI job; it is rerun by hand
+  on a Windows machine and its output is kept under `docs/records/`.
+- Why: an unpinned test runner or browser driver can turn the checks red with no change here.
+  The hosted Windows runner has an English display language and no Japanese fonts by default, so
+  an eval there would test the runner's setup, not the tool (reasoning, not measured beyond the
+  first failing CI run).
+- Rejected: installing a language pack on the runner in every CI run (slow, and still not the
+  machine a user has); dropping the Windows eval.
+
 ## 2026-11-20: Text output removes invisible characters, JSON escapes them
 
 - Decision: decided by Unicode category. `check_lib.clean()` drops Cc, Cf, Zl, Zp, Cs

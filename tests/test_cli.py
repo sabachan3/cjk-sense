@@ -226,6 +226,20 @@ def test_out_that_cannot_be_written_exits_two_before_the_browser_runs(capsys, tm
     assert cli.main(["check", "http://a/ja", "--out", str(report)], snapshots=boom) == 2 and not report.exists()
 
 
+def test_urls_file_with_a_byte_order_mark_and_an_indented_comment(capsys, tmp_path):
+    listing = tmp_path / "urls.txt"
+    listing.write_bytes(b"\xef\xbb\xbfhttp://a/ja\r\n   # a note\r\nhttp://b/ja\r\n")       # as a Windows editor saves it
+    code, _, seen = run(capsys, [snapshot("http://a/ja"), snapshot("http://b/ja")], "--urls-file", str(listing))
+    assert code == 0 and seen["urls"] == ["http://a/ja", "http://b/ja"]
+
+
+def test_out_through_a_dangling_link_leaves_nothing_behind_when_the_run_stops_early(capsys, tmp_path):
+    target, link = tmp_path / "target.json", tmp_path / "link.json"
+    link.symlink_to(target)
+    assert cli.main(["check", "http://a/ja", "--platforms", "bogus", "--out", str(link)], snapshots=lambda urls, args: []) == 2
+    assert link.is_symlink() and not target.exists()                                     # the link stays, no empty report appears
+
+
 def test_urls_file_that_cannot_be_read_exits_two(capsys, tmp_path):
     binary = tmp_path / "urls.bin"
     binary.write_bytes(bytes([0xFF, 0xFE, 0x00]))

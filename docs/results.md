@@ -85,9 +85,10 @@ of any Japanese font (typically `"PingFang SC"` and `"Microsoft YaHei"` after `-
 in 4 the text sits under a Chinese or Korean `lang`, and 1 is the browser-only case above.
 
 `python evals/field_summary.py runs/field.json` prints every count in this section from the
-report; the percentages are those counts over the 265 Japanese pages. The list of 600 sites the
-288 were drawn from is not stored in this repository (the block `among_ja_pages`: counts per platform, per kind of confirmation, per cause,
-and the declared languages of the mismatches).
+report (the block `among_ja_pages`: counts per platform, per kind of confirmation, per cause,
+and the declared languages of the mismatches); the percentages are those counts over the 265
+Japanese pages. The list of 600 sites the 288 were drawn from is
+not stored in this repository.
 
 ## What has not been measured
 

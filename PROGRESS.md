@@ -6,7 +6,7 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
 
 - Version 0.1.0, public, installable from the repository URL. Not on PyPI.
 - Five rules: `han-font`, `lang-mismatch`, `lang-missing`, `wrong-language`, `page-error`.
-- Gate: 87 tests, under 1 s (also passes on Windows, checked by hand 2026-11-20), runs as the pre-commit hook.
+- Gate: 89 tests, under 1 s (also passes on Windows, checked by hand 2026-11-20), runs as the pre-commit hook.
 - Browser eval: 22/22 on macOS (Chromium) rerun 2026-11-20; 22/22 on Windows 11 (Edge) rerun
   2026-11-20.
 - End-to-end check of the installed wheel: 4/4 on macOS, 2026-11-20.
@@ -22,12 +22,24 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
   output that is not UTF-8. Details are in `git log` and `docs/results.md`.
 - 2026-11-20: checked on a real Windows 11 machine (Edge eval 22/22, gate, redirected output).
 - 2026-11-20: CI workflow (8 jobs, green) and pinned versions for the gate and the browser.
+- 2026-11-22: independent review of everything since the third review (dbd3053..d95ff8b): PASS,
+  no class A finding; gate on Python 3.10, 3.12 and 3.13, browser eval 22/22 and end-to-end 4/4
+  on macOS rerun by the reviewer. Fixed from its notes: a URL list with a byte order mark, an
+  indented comment line in a URL list, an empty file left behind a dangling `--out` link, the
+  end-to-end install now under the browser pins. Those fixes are not reviewed.
 
 ## In Progress
 
 Nothing.
 
 ## Known Issues
+
+- `cjk_sense/cli.py` changed on 2026-11-22 (reading the URL list, the `--out` pre-check). The
+  Windows browser eval record is from 2026-11-20 and was not rerun; the change does not touch
+  fonts, snapshots or rules, and the Windows gate jobs in CI run the new tests. One of them makes
+  a symbolic link: on a Windows account without that privilege (not the CI runners) it fails.
+- The Windows record `docs/records/windows-eval-2026-11-20.txt` holds the eval output only; the
+  date, Python version and code page in `docs/results.md` were written down by hand.
 
 Limits of the design:
 - iOS and Android results are predictions from font lists. Never run on a device.

@@ -123,8 +123,9 @@ def take_snapshots(urls: list[str], args: argparse.Namespace) -> list[dict]:
 def read_urls(args: argparse.Namespace) -> list[str]:
     urls = list(args.urls)
     if args.urls_file:
-        urls += [line.strip() for line in Path(args.urls_file).read_text(encoding="utf-8").splitlines()
-                 if line.strip() and not line.startswith("#")]
+        # utf-8-sig: a list saved by a Windows editor starts with a byte order mark
+        lines = [line.strip() for line in Path(args.urls_file).read_text(encoding="utf-8-sig").splitlines()]
+        urls += [line for line in lines if line and not line.startswith("#")]
     return list(dict.fromkeys(urls))
 
 
@@ -157,11 +158,12 @@ def main(argv: list[str] | None = None, snapshots=take_snapshots) -> int:
     try:
         urls = read_urls(args)
         if args.out:  # fail now, not after the browser has visited every page
-            existed = Path(args.out).exists()
-            with Path(args.out).open("a", encoding="utf-8"):
+            out = Path(args.out)
+            existed = out.exists()
+            with out.open("a", encoding="utf-8"):
                 pass
-            if not existed:
-                Path(args.out).unlink()  # the check must not leave an empty report behind
+            if not existed:  # the check must not leave an empty report behind; through a link, that is the link's target
+                (out.resolve() if out.is_symlink() else out).unlink()
     except (OSError, UnicodeError) as error:
         print(f"cjk-sense: {check_lib.clean(error)}", file=sys.stderr)
         return 2
