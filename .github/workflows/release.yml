@@ -1,0 +1,76 @@
+name: release
+
+# Publishes cjk-sense to PyPI through trusted publishing (OIDC): PyPI trusts this workflow in
+# this repository, so no token or password is stored anywhere. Steps for the owner: docs/release.md.
+# Starts only when a GitHub release is published, or by hand. Never on a push.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, exactly as in pyproject.toml (for example 0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One release at a time, and a started one is never cancelled half way.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: ci
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: build and check the files to publish
+    needs: checks
+    runs-on: macos-latest
+    timeout-minutes: 15
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: the tag is v + the version in pyproject.toml, and the changelog entry has its date
+        shell: bash
+        env:
+          TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || format('v{0}', inputs.version) }}
+        run: uv run --quiet --no-project python evals/release_ready.py "$TAG"
+      - name: Japanese as the display language
+        run: defaults write -g AppleLanguages -array ja en
+      - name: install the bundled browser
+        run: uv run --quiet --no-project --with-requirements requirements-browser.txt playwright install chromium-headless-shell
+      # Builds the sdist and the wheel, checks their file lists and metadata, installs each and
+      # runs the installed command in a browser. Only when all of that passed are the two files
+      # copied to dist/, so the files published below are the ones that were run here.
+      - name: build, check, install, run; keep the files that passed
+        run: scripts/e2e.sh --dist dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/cjk-sense/
+    permissions:
+      id-token: write   # the short-lived identity PyPI checks; the only permission this job has
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

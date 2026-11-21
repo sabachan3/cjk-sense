@@ -5,9 +5,16 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:   # release.yml runs all of this before it builds anything
 
+# Actions are pinned to a commit; the comment names the version. To move one:
+#   gh api repos/OWNER/REPO/git/ref/tags/TAG   (an annotated tag needs a second look-up of its object)
+# A gate test (tests/test_package_contents.py) refuses a `uses:` line without a commit.
+
+# github.workflow is the name of the calling workflow, so a release run and a push to the same
+# ref do not cancel each other.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -30,8 +37,8 @@ jobs:
     env:
       UV_PYTHON: ${{ matrix.python }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - name: gate tests
         shell: bash
         run: scripts/test.sh
@@ -47,8 +54,8 @@ jobs:
     env:
       UV_PYTHON: "3.12"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - name: Japanese as the display language
         run: defaults write -g AppleLanguages -array ja en && defaults read -g AppleLanguages
       - name: install the bundled browser
@@ -57,17 +64,17 @@ jobs:
         run: scripts/eval.sh
 
   package:
-    name: build, install, run the installed command
+    name: build sdist and wheel, check contents, install each, run the installed command
     runs-on: macos-latest
     timeout-minutes: 15
     env:
       UV_PYTHON: "3.12"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - name: Japanese as the display language
         run: defaults write -g AppleLanguages -array ja en
       - name: install the bundled browser
         run: uv run --quiet --no-project --with-requirements requirements-browser.txt playwright install chromium-headless-shell
-      - name: end-to-end check of the installed wheel
+      - name: end-to-end check of the installed wheel and sdist
         run: scripts/e2e.sh

@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "evals"))
 import package_contents as contents  # noqa: E402
+import release_ready  # noqa: E402
 
 import cjk_sense  # noqa: E402
 
@@ -168,3 +169,41 @@ def test_pyproject_names_no_email_address_and_matches_the_licence_file():
 def test_every_file_the_wheel_takes_from_outside_the_package_is_in_the_expected_list():
     forced = re.findall(r'^"[^"]+" = "([^"]+)"$', read("pyproject.toml"), re.MULTILINE)
     assert len(forced) == 5 and set(forced) <= contents.expected_wheel("0.1.0")
+
+
+def test_workflow_actions_are_pinned_to_a_commit_with_the_version_in_a_comment():
+    workflows = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+    assert {path.name for path in workflows} >= {"ci.yml", "release.yml"}
+    for path in workflows:
+        uses = re.findall(r"^\s*(?:- )?uses:\s*(.+)$", path.read_text(encoding="utf-8"), re.MULTILINE)
+        assert uses, path.name
+        for value in uses:
+            assert value.startswith("./") or re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+", value), (path.name, value)
+
+
+def test_release_workflow_publishes_only_on_a_release_or_by_hand_and_asks_for_no_token():
+    text = read(".github/workflows/release.yml")
+    triggers = text[text.index("\non:\n"):text.index("\npermissions:")]
+    assert re.findall(r"^  (\w+):", triggers, re.MULTILINE) == ["release", "workflow_dispatch"]
+    assert "types: [published]" in triggers
+    assert "id-token: write" in text and "pypa/gh-action-pypi-publish@" in text
+    assert not re.search(r"^\s*(password|user|repository-url)\s*:", text, re.MULTILINE) and "secrets." not in text
+    assert text.index("uses: ./.github/workflows/ci.yml") < text.index("scripts/e2e.sh --dist") < text.index("pypa/gh-action-pypi-publish@")
+
+
+def test_release_ready_wants_the_tag_the_package_and_a_dated_changelog_entry_to_agree(tmp_path, capsys):
+    pyproject, init = '[project]\nname = "cjk-sense"\nversion = "0.1.0"\n', '__version__ = "0.1.0"\n'
+    dated, undated = "# Changelog\n\n## 0.1.0 (2026-12-01)\n", "# Changelog\n\n## 0.1.0 (not released yet)\n"
+    assert release_ready.release_problems("v0.1.0", pyproject, init, dated) == []
+    assert "expected the tag 'v0.1.0'" in release_ready.release_problems("0.1.0", pyproject, init, dated)[0]
+    assert "expected the tag 'v0.1.0'" in release_ready.release_problems("v0.1.1", pyproject, init, dated)[0]
+    assert "__init__.py says '0.0.9'" in release_ready.release_problems("v0.1.0", pyproject, '__version__ = "0.0.9"\n', dated)[0]
+    assert "write the release date" in release_ready.release_problems("v0.1.0", pyproject, init, undated)[0]
+    assert "no entry" in release_ready.release_problems("v0.1.0", pyproject, init, "# Changelog\n\n## 0.1.00 (2026-12-01)\n")[0]
+    assert release_ready.release_problems("v0.1.0", "[project]\n", init, dated) == ["pyproject.toml has no version"]
+    (tmp_path / "cjk_sense").mkdir()
+    for name, text in (("pyproject.toml", pyproject), ("cjk_sense/__init__.py", init), ("CHANGELOG.md", dated)):
+        (tmp_path / name).write_text(text, encoding="utf-8")
+    assert release_ready.main(["v0.1.0"], root=tmp_path) == 0 and "release ready: yes, v0.1.0" in capsys.readouterr().out
+    assert release_ready.main(["v9"], root=tmp_path) == 1 and "FAIL the tag is 'v9'" in capsys.readouterr().out
+    assert release_ready.main([], root=tmp_path) == 2
