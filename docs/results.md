@@ -1,6 +1,6 @@
 # Results
 
-Dates: 2026-11-19, with reruns on 2026-11-20 marked as such. Version 0.1.0.
+Dates: 2026-11-19, with reruns on 2026-11-20 and 2026-11-22 marked as such. Version 0.1.0.
 
 ## Browser eval: 22 pages with a known answer
 
@@ -39,12 +39,31 @@ is kept in [records/windows-eval-2026-11-20.txt](records/windows-eval-2026-11-20
 
 ## End-to-end check of the installed package (2026-11-20)
 
-`scripts/e2e.sh` builds the wheel, installs it into a throwaway environment and runs the
+On that day `scripts/e2e.sh` built the wheel only; the next section is the script as it is now.
+It built the wheel, installed it into a throwaway environment and ran the
 installed command against three pages served over HTTP (macOS, Chromium): 4/4 checks pass
 (a clean page: ok, exit 0; a Chinese font ahead of Japanese fonts: `han-font`, exit 1; a wrong
 `lang`: `lang-mismatch`, exit 1; all three in one run: 2 fail, 1 ok, exit 1). Negative control:
-with one service removed from the wheel's file list, all four checks fail and the script exits 1
+with one service removed from the wheel's file list, all four checks failed and the script exited 1
 (exit status recorded on 2026-11-20 for each of the five listed files in turn).
+
+### Wheel and sdist, with their contents (2026-11-22)
+
+`scripts/e2e.sh` now builds the sdist and the wheel (the wheel from the sdist), compares both
+file lists and the metadata with the expected ones (`evals/package_contents.py`), runs
+`twine check --strict`, installs each archive into its own environment and runs the installed
+command: 13 files in the wheel and 15 in the sdist, as expected; 6/6 checks for the wheel and
+6/6 for the sdist (`--version` prints the built version, `--help` prints the usage, then the
+four page checks above). One Mac (macOS 27.0.1, Japanese display language), Chromium from the
+pinned Playwright 1.65.2, environments on Python 3.14.6 (CI runs the same script on 3.12).
+
+Negative controls, each run once by hand on that day, each stopped the script with exit 1 at
+the contents check, before anything was installed: `docs/` added to the sdist (3 unexpected
+files reported), one service removed from the wheel's file list (1 missing file), a different
+`__version__` in the package, an author email address in `pyproject.toml`.
+
+Not covered: the release workflow itself (`.github/workflows/release.yml`) has never run, and
+nothing was uploaded to PyPI or TestPyPI. The workflow files pass `actionlint`.
 
 ## Hostile page (2026-11-20)
 

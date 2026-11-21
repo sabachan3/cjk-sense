@@ -21,7 +21,7 @@
     },
     {
       "id": "command-line",
-      "behavior": "cjk-sense check accepts URLs, --urls-file, --expect, --platforms, --fail-on, --format and --out, and exits 0, 1 or 2.",
+      "behavior": "cjk-sense check accepts URLs, --urls-file, --expect, --platforms, --fail-on, --format and --out, and exits 0, 1 or 2; cjk-sense --version prints the package version.",
       "verify": "uv run --quiet --no-project --with-requirements requirements-gate.txt pytest -q tests services/snapshot/tests",
       "state": "passing"
     },
@@ -40,8 +40,14 @@
     },
     {
       "id": "installed-package",
-      "behavior": "The built wheel, installed into a clean environment, checks pages served over HTTP in a real browser and returns the right verdicts and exit codes.",
+      "behavior": "The sdist and the wheel hold exactly the expected files and metadata and pass twine check; each, installed into a clean environment, prints its version and usage, checks pages served over HTTP in a real browser and returns the right verdicts and exit codes.",
       "verify": "scripts/e2e.sh",
+      "state": "passing"
+    },
+    {
+      "id": "release-files",
+      "behavior": "The rules for what may be published are pinned: exact file lists and metadata of wheel and sdist (no email address, no README link PyPI cannot follow), one version in pyproject.toml, the package and the changelog, workflow actions pinned to commits, and a release workflow that publishes only on a GitHub release or by hand, without a token.",
+      "verify": "uv run --quiet --no-project --with-requirements requirements-gate.txt pytest -q tests/test_package_contents.py",
       "state": "passing"
     }
   ]
