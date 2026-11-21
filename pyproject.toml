@@ -5,16 +5,43 @@ description = "Find pages whose kanji are drawn with another region's font, and 
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "sabachan3" }]
 dependencies = ["playwright>=1.49"]
-keywords = ["i18n", "l10n", "cjk", "japanese", "chinese", "fonts", "lang", "lint", "accessibility"]
-classifiers = ["Programming Language :: Python :: 3", "Topic :: Software Development :: Internationalization",
-               "Topic :: Software Development :: Quality Assurance"]
+keywords = ["i18n", "l10n", "cjk", "japanese", "chinese", "korean", "kanji", "fonts", "lang", "lint",
+            "accessibility", "playwright"]
+# Python versions and systems are the ones CI runs the gate tests on (.github/workflows/ci.yml).
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Internationalization",
+    "Topic :: Software Development :: Localization",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+
+[project.urls]
+Homepage = "https://github.com/sabachan3/cjk-sense"
+Repository = "https://github.com/sabachan3/cjk-sense"
+Issues = "https://github.com/sabachan3/cjk-sense/issues"
+Changelog = "https://github.com/sabachan3/cjk-sense/blob/main/CHANGELOG.md"
+Results = "https://github.com/sabachan3/cjk-sense/blob/main/docs/results.md"
 
 [project.scripts]
 cjk-sense = "cjk_sense.cli:main"
 
 [build-system]
-requires = ["hatchling"]
+# 1.27 is the first hatchling that writes the SPDX licence fields (License-Expression, License-File).
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
@@ -28,5 +55,9 @@ packages = ["cjk_sense"]
 "services/check/check_lib.py" = "cjk_sense/_services/check/check_lib.py"
 "contracts/schema.py" = "cjk_sense/_services/contracts/schema.py"
 
+# The sdist holds what builds the wheel and the documents PyPI shows, nothing else. Tests, evals,
+# scripts and agent documents stay in the repository: without each other they cannot run.
+# evals/package_contents.py holds the expected file lists; scripts/e2e.sh compares.
 [tool.hatch.build.targets.sdist]
-include = ["cjk_sense", "services", "contracts", "README.md", "LICENSE", "pyproject.toml"]
+include = ["/cjk_sense", "/services/*/*_lib.py", "/contracts/__init__.py", "/contracts/schema.py",
+           "/README.md", "/CHANGELOG.md", "/LICENSE", "/pyproject.toml"]

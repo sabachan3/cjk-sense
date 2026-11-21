@@ -27,16 +27,43 @@ FAIL http://localhost:3000/ja  (Japanese, lang='ja')
 
 ## Install
 
+Today, from the repository:
+
 ```bash
 uvx --from git+https://github.com/sabachan3/cjk-sense cjk-sense check https://example.com/ja
 ```
 
-or `pip install git+https://github.com/sabachan3/cjk-sense`. It needs a Chromium to drive, one of:
+or `pip install git+https://github.com/sabachan3/cjk-sense`.
+
+After the first release on PyPI (cjk-sense is not on PyPI yet, so these two do not work today):
 
 ```bash
-playwright install chromium-headless-shell   # bundled browser
+pip install cjk-sense
+uvx cjk-sense check https://example.com/ja
+```
+
+Either way it needs a Chromium to drive, one of:
+
+```bash
+playwright install chromium-headless-shell   # bundled browser, after pip install
+uvx --from playwright playwright install chromium-headless-shell   # the same, when running through uvx
 cjk-sense check URL --channel chrome         # or an installed Chrome / Edge (msedge)
 ```
+
+### Supported Python versions and systems
+
+Python 3.10 or newer. What has been run, and where:
+
+| | Python | how |
+|---|---|---|
+| Linux | 3.10, 3.12, 3.13 | tests without a browser, on every push (CI) |
+| macOS | 3.12 | the same tests, the 22 known-answer pages in Chromium, and the built wheel and sdist each installed and run against pages over HTTP, on every push (CI) |
+| Windows | 3.10, 3.12 | tests without a browser on every push (CI); the 22 known-answer pages in Edge on one Windows 11 machine by hand (Python 3.10, last on 2026-11-20) |
+
+Python 3.11 and 3.14 are not in CI; the tests without a browser passed on both on one Mac, by
+hand, on 2026-11-22. No run in a real browser on Linux is recorded: the font prediction does
+not depend on the system and is covered by the tests, while the "confirmed in this browser"
+line needs CJK fonts on the machine.
 
 ## Rules
 
@@ -88,11 +115,11 @@ cjk-sense check URL [URL ...] [--urls-file FILE]
   --wait MS            extra wait for client-side rendering   --timeout MS   --workers N
 ```
 
-CI example: [docs/github-actions.yml](docs/github-actions.yml).
+CI example: [docs/github-actions.yml](https://github.com/sabachan3/cjk-sense/blob/main/docs/github-actions.yml).
 
 ## How well it works
 
-See [docs/results.md](docs/results.md). In short:
+See [docs/results.md](https://github.com/sabachan3/cjk-sense/blob/main/docs/results.md). In short:
 
 - 22 purpose-built pages give the expected findings in Chromium on macOS and in Edge on
   Windows 11, and every font prediction that names a region matched the font the browser used.
@@ -121,7 +148,7 @@ scripts/setup.sh                   # once per clone: pre-commit hook, browser, t
 scripts/test.sh                    # gate tests, under 2 s, no browser, also the pre-commit hook
 scripts/eval.sh                    # browser eval on macOS
 scripts/eval.sh --channel msedge   # browser eval on Windows
-scripts/e2e.sh                     # build the wheel, install it, run it against pages served over HTTP
+scripts/e2e.sh                     # build sdist and wheel, check their contents, install each, run it against pages over HTTP
 ```
 
 | path | what it is |
@@ -132,11 +159,14 @@ scripts/e2e.sh                     # build the wheel, install it, run it against
 | `services/check/` | rules, report, exit code, text output |
 | `contracts/` | the shapes passed between them, and their validator |
 | `cjk_sense/` | the command; the only place that wires services together |
-| `evals/` | browser eval, end-to-end check, field-run summary |
+| `evals/` | browser eval, end-to-end check, package contents check, field-run summary |
 
-Working on this repository with a coding agent: start from [CLAUDE.md](CLAUDE.md), the current
-state is in [PROGRESS.md](PROGRESS.md). Related project:
+Working on this repository with a coding agent: start from [CLAUDE.md](https://github.com/sabachan3/cjk-sense/blob/main/CLAUDE.md), the current
+state is in [PROGRESS.md](https://github.com/sabachan3/cjk-sense/blob/main/PROGRESS.md). Related project:
 [l10n-sense](https://github.com/sabachan3/l10n-sense) checks whether translated strings mean the
 right thing.
+
+Changes per version: [CHANGELOG.md](https://github.com/sabachan3/cjk-sense/blob/main/CHANGELOG.md). Publishing a release:
+[docs/release.md](https://github.com/sabachan3/cjk-sense/blob/main/docs/release.md).
 
 MIT licence.
