@@ -4,6 +4,7 @@ import sys
 
 import pytest
 
+import cjk_sense
 from cjk_sense import cli
 
 JA = "これは日本語のページです。設定を保存しました。" * 4
@@ -309,3 +310,9 @@ def test_every_page_controlled_field_of_the_text_report_is_cleaned(capsys):
     text = check_lib.format_text(report)
     assert not any(char in text for char in INVISIBLE)
     assert all(part in text for part in ("m", "fix: f", "confirmed in this browser: used", "font-family: ff"))
+
+
+def test_version_option_prints_the_package_version_and_exits_zero(capsys):
+    with pytest.raises(SystemExit) as stop:
+        cli.main(["--version"])
+    assert stop.value.code == 0 and capsys.readouterr().out.strip() == f"cjk-sense {cjk_sense.__version__}"

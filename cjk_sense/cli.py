@@ -26,6 +26,8 @@ import sys
 import unicodedata
 from pathlib import Path
 
+from cjk_sense import __version__
+
 PACKAGE = Path(__file__).resolve().parent
 # installed: services are shipped inside the package. In the repository: the services/ directory.
 INSTALLED = (PACKAGE / "_services").is_dir()
@@ -155,6 +157,7 @@ def check_out_is_writable(out: Path) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="cjk-sense", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--version", action="version", version=f"cjk-sense {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
     check = commands.add_parser("check", help="check one or more pages")
     check.add_argument("urls", nargs="*", help="page URLs (http, https or file)")
