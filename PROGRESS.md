@@ -6,7 +6,7 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
 
 - Version 0.1.0, public, installable from the repository URL. Not on PyPI.
 - Five rules: `han-font`, `lang-mismatch`, `lang-missing`, `wrong-language`, `page-error`.
-- Gate: 89 tests, under 1 s (also passes on Windows, checked by hand 2026-11-20), runs as the pre-commit hook.
+- Gate: 90 tests, under 1 s (also passes on Windows, checked by hand 2026-11-20), runs as the pre-commit hook.
 - Browser eval: 22/22 on macOS (Chromium) rerun 2026-11-20; 22/22 on Windows 11 (Edge) rerun
   2026-11-20.
 - End-to-end check of the installed wheel: 4/4 on macOS, 2026-11-20.
@@ -26,7 +26,8 @@ Updated: 2026-11-20. Keep this file short and current; history belongs in git.
   no class A finding; gate on Python 3.10, 3.12 and 3.13, browser eval 22/22 and end-to-end 4/4
   on macOS rerun by the reviewer. Fixed from its notes: a URL list with a byte order mark, an
   indented comment line in a URL list, an empty file left behind a dangling `--out` link, the
-  end-to-end install now under the browser pins. Those fixes are not reviewed.
+  end-to-end install now under the browser pins; after an automated security note, the `--out`
+  check follows no link and removes only its own probe file. Those fixes are not reviewed.
 
 ## In Progress
 
